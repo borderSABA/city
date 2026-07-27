@@ -411,13 +411,13 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
    v1.1：画面圧縮・カード一覧・サイドバーダイス
 ================================================== */
 .market-decks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:start}
-.dice-sidebar .section-title{margin-bottom:4px}
-.dice-sidebar .dice-stage{min-height:104px;margin:0}
 .catalog-modal{max-width:1180px}
 .catalog-section{margin-top:18px}
 .catalog-section h3{margin:0 0 9px}
 .catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px}
-.catalog-card{border:2px solid var(--line);border-radius:11px;background:#fff;overflow:hidden;display:grid;align-content:start}
+.catalog-card{position:relative;border:2px solid var(--line);border-radius:11px;background:#fff;overflow:hidden;display:grid;align-content:start}
+.catalog-image-wrap{position:relative;display:block;background:#edf0ee}
+.catalog-ban-overlay{position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:rgba(25,25,25,.58);color:#fff;font-size:clamp(24px,4vw,46px);font-weight:1000;letter-spacing:.12em;text-shadow:0 2px 5px rgba(0,0,0,.7);pointer-events:none}
 .catalog-card.type-blue{border-color:var(--blue)}
 .catalog-card.type-green{border-color:var(--green)}
 .catalog-card.type-red{border-color:var(--red)}
@@ -428,6 +428,13 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 .catalog-info b{font-size:12px}
 .catalog-info small{font-size:10px;color:var(--muted);line-height:1.35}
 .catalog-info p{font-size:10px;line-height:1.4;margin:2px 0 0;color:#475761}
+
+.landmark-turn-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,360px);gap:8px;align-items:stretch}
+.landmark-turn-row>.panel{height:100%}
+.turn-side-panel{display:grid;align-content:start}
+.turn-side-panel .turn-box{height:100%;display:grid;align-content:start}
+.turn-side-panel .dice-stage{min-height:104px;margin:6px 0 2px}
+@media(max-width:1050px){.landmark-turn-row{grid-template-columns:1fr}}
 
 @media(min-width:1050px){
   .page{max-width:1880px;padding:8px}
@@ -661,7 +668,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.2.0';
+const APP_VERSION='v1.2.1';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -785,7 +792,7 @@ function diceStageHtml(g){
 }
 function turnHtml(g,me){
   const current=g.players.find(p=>p.id===g.currentPlayerId),mine=current?.id===g.viewerId&&!current.isCpu&&!effectAnimationsBusy();
-  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2>${decisionHtml(g)}${mine&&!g.pending&&g.phase==='roll'?`<div class="actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`:''}${mine&&!g.pending&&g.phase==='build'?'<div class="actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>':''}</div>`;
+  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div>${decisionHtml(g)}${mine&&!g.pending&&g.phase==='roll'?`<div class="actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`:''}${mine&&!g.pending&&g.phase==='build'?'<div class="actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>':''}</div>`;
 }
 function renderGame(){
   captureLogPosition();const g=game;queueNewVisuals(g);
@@ -800,10 +807,9 @@ function renderGame(){
   app.innerHTML=`<div class="shell">${topbar()}<main class="page game-layout"><div class="board">
     ${g.winnerId?`<section class="panel section"><div class="turn-box"><h1>🏆 ${esc(g.players.find(p=>p.id===g.winnerId)?.name)}の勝利</h1><p>有効なランドマーク${landmarks.length}種類をすべて完成させました。</p><button class="btn gold big" data-open-results>リザルトを見る</button></div></section>`:''}
     <section class="panel section"><div class="section-title"><h2>プレイヤー</h2><span class="hint">第${g.turnNo}手番 / ${esc(banText)}</span></div><div class="players">${g.players.map((p,i)=>playerPanel(p,i,g)).join('')}</div></section>
-    <section class="panel section">${turnHtml(g,me)}</section>
     <section class="panel section"><div class="section-title"><h2>市場</h2><span class="hint">1～6を5種類＋7～12を5種類</span></div><div class="market-decks"><div class="market-group"><div class="market-label"><b>🎲 1～6の施設</b><span>山札 ${g.deckRemaining.low}枚</span></div><div class="market">${marketCards(lowMarket)}</div></div><div class="market-group"><div class="market-label"><b>🎲 7～12の施設</b><span>山札 ${g.deckRemaining.high}枚</span></div><div class="market">${marketCards(highMarket)}</div></div></div></section>
-    <section class="panel section"><div class="section-title"><h2>ランドマーク</h2><span class="hint">有効な${landmarks.length}種類を完成で勝利</span></div><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${me.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${me.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p><div class="row"><span class="cost">${l.cost}コイン</span><span class="grow"></span>${!me.landmarks[l.id]&&mine&&!g.pending&&g.phase==='build'?`<button class="btn gold" data-build-landmark="${l.id}" ${me.coins<l.cost?'disabled':''}>完成</button>`:''}</div></div>`).join('')}</div></section>
-  </div><aside class="sidebar"><section class="panel section"><div class="section-title"><h2>自分の街</h2><span><span data-player-coins="${esc(me.id)}">${displayedCoins(me)}</span>🪙</span></div><div class="city-list">${ownCards.map(x=>`<span class="city-chip ${x.closed?'closed':''} ${x.card.id==='tech_startup'?'tech-invested':''}" title="${esc(x.card.text)}">${esc(x.card.name)} ×${x.count}${x.closed?`（休${x.closed}）`:''}${x.card.id==='tech_startup'?`・積立${Number(me.investments?.tech_startup||0)}🪙`:''}</span>`).join('')}</div></section><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section><section class="panel section dice-sidebar"><div class="section-title"><h2>ダイスロール</h2></div><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div></section></aside></main></div>`;
+    <div class="landmark-turn-row"><section class="panel section"><div class="section-title"><h2>ランドマーク</h2><span class="hint">有効な${landmarks.length}種類を完成で勝利</span></div><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${me.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${me.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p><div class="row"><span class="cost">${l.cost}コイン</span><span class="grow"></span>${!me.landmarks[l.id]&&mine&&!g.pending&&g.phase==='build'?`<button class="btn gold" data-build-landmark="${l.id}" ${me.coins<l.cost?'disabled':''}>完成</button>`:''}</div></div>`).join('')}</div></section><section class="panel section turn-side-panel">${turnHtml(g,me)}</section></div>
+  </div><aside class="sidebar"><section class="panel section"><div class="section-title"><h2>自分の街</h2><span><span data-player-coins="${esc(me.id)}">${displayedCoins(me)}</span>🪙</span></div><div class="city-list">${ownCards.map(x=>`<span class="city-chip ${x.closed?'closed':''} ${x.card.id==='tech_startup'?'tech-invested':''}" title="${esc(x.card.text)}">${esc(x.card.name)} ×${x.count}${x.closed?`（休${x.closed}）`:''}${x.card.id==='tech_startup'?`・積立${Number(me.investments?.tech_startup||0)}🪙`:''}</span>`).join('')}</div></section><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
   bindCommon();bindGame();restoreLogPosition();if(activeVisual?.kind==='coin')renderActiveEffect();else if(activeVisual?.kind==='dice')renderDiceAnimation(activeVisual);else startNextEffect();document.querySelector('[data-open-results]')?.addEventListener('click',showResults);
 }
 function bindGame(){
@@ -847,7 +853,8 @@ function showCity(playerId){
 }
 function showIds(){
   const div=document.createElement('div');div.className='modal-backdrop';
-  const catalogCard=(item,type)=>{const src=imageMap[item.id];const roll=item.rolls?.length?`出目 ${item.rolls.join('・')} / ${item.cost}コイン`:`ランドマーク / ${item.cost}コイン`;return`<article class="catalog-card type-${type}">${src?`<img src="${esc(src)}" alt="${esc(item.name)}" onerror="this.remove()">`:''}<div class="catalog-info"><b>${esc(item.name)}</b><small>${esc(roll)}</small><p>${esc(item.text||'')}</p></div></article>`};
+  const bannedIds=new Set(game?.bans?.all||roomState?.settings?.initialBans||[]);
+  const catalogCard=(item,type)=>{const src=imageMap[item.id],isBanned=bannedIds.has(item.id);const roll=item.rolls?.length?`出目 ${item.rolls.join('・')} / ${item.cost}コイン`:`ランドマーク / ${item.cost}コイン`;return`<article class="catalog-card type-${type} ${isBanned?'is-banned':''}"><div class="catalog-image-wrap">${src?`<img src="${esc(src)}" alt="${esc(item.name)}" onerror="this.remove()">`:'<div style="aspect-ratio:63/88;display:grid;place-items:center;color:var(--muted)">画像なし</div>'}${isBanned?'<span class="catalog-ban-overlay">BAN</span>':''}</div><div class="catalog-info"><b>${esc(item.name)}</b><small>${esc(roll)}</small><p>${esc(item.text||'')}</p></div></article>`};
   const low=meta.cards.filter(c=>c.supply==='low'),high=meta.cards.filter(c=>c.supply==='high');
   div.innerHTML=`<div class="modal catalog-modal"><div class="row"><h2 class="grow">カード一覧</h2><button class="btn" data-close>閉じる</button></div><section class="catalog-section"><h3>1～6の施設</h3><div class="catalog-grid">${low.map(c=>catalogCard(c,c.type)).join('')}</div></section><section class="catalog-section"><h3>7～12の施設</h3><div class="catalog-grid">${high.map(c=>catalogCard(c,c.type)).join('')}</div></section><section class="catalog-section"><h3>ランドマーク</h3><div class="catalog-grid">${meta.landmarks.map(c=>catalogCard(c,'landmark')).join('')}</div></section></div>`;
   document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
