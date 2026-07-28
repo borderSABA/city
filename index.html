@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.3.0</title>
+  <title>街コロ オンライン v1.3.1</title>
   <style>
 :root{
   color-scheme:light;
@@ -485,7 +485,7 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 
 
 /* ==================================================
-   v1.3.0：スマホ縦画面・ゲーム中1画面レイアウト
+   v1.3.1：スマホ縦画面・ゲーム中1画面レイアウト
 ================================================== */
 .mobile-log-button{display:none}
 .mobile-log-modal{max-width:680px}
@@ -685,6 +685,80 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
   .turn-side-panel{max-height:102px}
 }
 
+
+/* ==================================================
+   v1.3.1：スマホのプレイヤー・ダイス・街詳細を調整
+================================================== */
+@media (max-width:640px) and (orientation:portrait){
+  /* プレイヤー欄を少し広げ、ランドマーク進捗を読みやすくする */
+  .players-section{height:101px;min-height:101px}
+  .players-section .section-title{height:13px}
+  .players{height:82px;gap:3px}
+  .player{padding:4px 5px;border-radius:6px}
+  .player-head{font-size:9px;line-height:1.1}
+  .coins{font-size:12px}
+  .player .mini{
+    display:flex;
+    align-items:center;
+    gap:3px;
+    height:12px;
+    margin:2px 0 1px;
+    font-size:7px;
+    line-height:1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .tech-invest-mini{flex:none;font-size:7px;padding:1px 3px}
+  .landmark-dots{height:10px;margin:2px 0 0;gap:3px}
+  .landmark-dot{width:10px;height:10px;border-width:1px;border-radius:2px}
+
+  /* ダイスボタンを大きくして横幅いっぱいに使う */
+  .turn-side-panel{max-height:135px}
+  .turn-box .actions:has([data-roll]){display:flex;width:100%;gap:5px;margin-top:4px}
+  .turn-box .actions [data-roll]{
+    flex:1 1 0;
+    min-width:0;
+    min-height:38px;
+    padding:8px 5px!important;
+    border-radius:8px;
+    font-size:13px!important;
+    line-height:1.15;
+    font-weight:900;
+  }
+
+  /* プレイヤーの街：施設・ランドマークともに1段3枚 */
+  .city-modal{width:calc(100vw - 12px);max-height:calc(100dvh - 20px);padding:8px}
+  .city-modal>.row{position:sticky;top:-8px;z-index:8;background:var(--paper);padding:4px 0 7px}
+  .city-modal>h3{font-size:13px;margin:8px 0 4px}
+  .city-modal .city-view-grid,
+  .city-modal .landmarks{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px;
+    justify-content:stretch;
+  }
+  .city-modal .card,
+  .city-modal .landmark{
+    width:100%;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:63/88!important;
+  }
+  .city-modal .landmark-image,
+  .city-modal .card-image{width:100%;height:100%;object-fit:contain}
+}
+
+@media (max-width:640px) and (max-height:700px) and (orientation:portrait){
+  .players-section{height:84px;min-height:84px}
+  .players{height:67px}
+  .player{padding:2px 4px}
+  .player .mini{height:10px;font-size:6px;margin:1px 0}
+  .landmark-dots{height:8px;margin-top:1px;gap:2px}
+  .landmark-dot{width:8px;height:8px}
+  .turn-side-panel{max-height:108px}
+  .turn-box .actions [data-roll]{min-height:32px;padding:6px 4px!important;font-size:11px!important}
+}
+
   </style>
 </head>
 <body>
@@ -870,7 +944,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.0';
+const APP_VERSION='v1.3.1';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1055,7 +1129,7 @@ function showCity(playerId){
   const owned=Object.entries(p.city).map(([id,count])=>({card:byId(meta.cards,id),count,closed:p.closed[id]||0})).filter(x=>x.card);
   const landmarks=activeLandmarks(g);
   const div=document.createElement('div');div.className='modal-backdrop';
-  div.innerHTML=`<div class="modal"><div class="row"><h2 class="grow">${esc(p.name)}の街・${p.coins}コイン</h2><button class="btn" data-close>閉じる</button></div><h3>施設</h3><div class="city-view-grid">${owned.map(x=>cardHtml(x.card,x.count,{closed:x.closed,showInvestment:x.card.id==='tech_startup',investment:p.investments?.tech_startup||0})).join('')}</div><h3>ランドマーク</h3><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${p.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${p.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p></div>`).join('')}</div></div>`;
+  div.innerHTML=`<div class="modal city-modal"><div class="row"><h2 class="grow">${esc(p.name)}の街・${p.coins}コイン</h2><button class="btn" data-close>閉じる</button></div><h3>施設</h3><div class="city-view-grid">${owned.map(x=>cardHtml(x.card,x.count,{closed:x.closed,showInvestment:x.card.id==='tech_startup',investment:p.investments?.tech_startup||0})).join('')}</div><h3>ランドマーク</h3><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${p.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${p.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p></div>`).join('')}</div></div>`;
   document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
 }
 function showIds(){
