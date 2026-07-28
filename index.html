@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.2.2</title>
+  <title>街コロ オンライン v1.3.0</title>
   <style>
 :root{
   color-scheme:light;
@@ -483,6 +483,208 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 .city-chip.tech-invested{background:#f0e8f8;border-color:#9d7bbd;font-weight:800}
 @media(max-width:640px){.version-label{font-size:.34em}.investment-badge{font-size:9px;padding:3px 5px}}
 
+
+/* ==================================================
+   v1.3.0：スマホ縦画面・ゲーム中1画面レイアウト
+================================================== */
+.mobile-log-button{display:none}
+.mobile-log-modal{max-width:680px}
+.mobile-modal-logs{height:min(72dvh,620px)}
+
+@media (max-width:640px) and (orientation:portrait){
+  html,body{height:100%;overscroll-behavior:none}
+  body:has(.game-layout){overflow:hidden}
+  body:has(.game-layout) .shell{height:100dvh;min-height:0;overflow:hidden}
+  body:has(.game-layout) .topbar{
+    position:relative;
+    height:calc(38px + env(safe-area-inset-top));
+    min-height:calc(38px + env(safe-area-inset-top));
+    padding:calc(3px + env(safe-area-inset-top)) 5px 3px;
+    gap:3px;
+    flex-wrap:nowrap;
+  }
+  body:has(.game-layout) .topbar .brand{
+    min-width:92px;
+    max-width:104px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:10px;
+    letter-spacing:0;
+  }
+  body:has(.game-layout) .topbar .brand small,
+  body:has(.game-layout) .topbar .room-badge{display:none}
+  body:has(.game-layout) .topbar>.row{gap:2px;flex-wrap:nowrap;margin-left:auto}
+  body:has(.game-layout) .topbar .btn{
+    min-width:30px;
+    padding:4px 5px;
+    border-radius:6px;
+    line-height:1;
+    font-size:0;
+    white-space:nowrap;
+  }
+  body:has(.game-layout) .topbar .btn::after{font-size:9px}
+  body:has(.game-layout) .topbar [data-cmd="logs"]::after{content:"ログ"}
+  body:has(.game-layout) .topbar [data-cmd="results"]::after{content:"集計"}
+  body:has(.game-layout) .topbar [data-cmd="ids"]::after{content:"一覧"}
+  body:has(.game-layout) .topbar [data-cmd="reset"]::after{content:"戻す"}
+  body:has(.game-layout) .topbar [data-cmd="rooms"]::after{content:"部屋"}
+  .mobile-log-button{display:inline-flex!important}
+
+  .page.game-layout{
+    width:100%;
+    height:calc(100dvh - 38px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height:0;
+    margin:0;
+    padding:3px;
+    display:block;
+    overflow:hidden;
+  }
+  .game-layout .board{
+    height:100%;
+    min-height:0;
+    display:grid;
+    grid-template-rows:auto auto auto;
+    align-content:start;
+    gap:3px;
+    overflow:hidden;
+  }
+  .game-layout .panel{border-radius:7px;box-shadow:none}
+  .game-layout .section{padding:3px}
+  .game-layout .section-title{min-height:12px;margin:0 0 2px}
+  .game-layout .section-title h2{font-size:10px;line-height:1}
+  .game-layout .section-title .hint{font-size:8px;line-height:1}
+  .winner-section{
+    position:fixed;
+    z-index:35;
+    left:6px;
+    right:6px;
+    top:42px;
+    padding:5px!important;
+  }
+  .winner-section .turn-box{padding:6px}
+  .winner-section h1{font-size:17px;margin:0}
+  .winner-section p{display:none}
+  .winner-section .btn{padding:5px 8px;font-size:10px}
+
+  .players-section{height:82px;min-height:82px;overflow:hidden}
+  .players-section .section-title{height:12px}
+  .players{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));
+    gap:2px;
+    height:63px;
+  }
+  .player{
+    min-width:0;
+    min-height:0;
+    padding:2px 4px;
+    border-width:1px;
+    border-radius:5px;
+    overflow:hidden;
+  }
+  .player.current{box-shadow:inset 0 0 0 1px rgba(212,155,44,.5)}
+  .player-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px;font-size:9px;line-height:1.05}
+  .player-head>span:first-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .coins{font-size:11px;white-space:nowrap}
+  .player .mini{height:10px;margin:1px 0 0;font-size:0;line-height:1;overflow:hidden}
+  .tech-invest-mini{margin:0;padding:1px 3px;font-size:7px}
+  .landmark-dots{height:6px;margin:1px 0 0;gap:2px}
+  .landmark-dot{width:6px;height:6px;border-radius:1px}
+  .player .btn[data-view-city]{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;z-index:2}
+  .recent-delta{padding:1px 3px;font-size:8px}
+  .player-effect{top:-2px!important;left:50%!important;right:auto!important;max-width:calc(100% + 20px)!important;font-size:9px!important;padding:3px 4px!important;border-width:2px!important}
+
+  .market-section{min-height:0;overflow:hidden}
+  .market-section>.section-title{display:none}
+  .market-decks{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto;gap:2px;align-items:start}
+  .market-group{margin:0;padding:0;border:0;gap:2px;min-height:0}
+  .market-label{height:15px;min-height:15px;padding:2px 4px;border-radius:4px;line-height:1}
+  .market-label b{font-size:8px}
+  .market-label span{font-size:7px}
+  .market{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+  .card{min-height:0;aspect-ratio:63/88;border-width:1px;border-radius:5px}
+  .card-image{border-radius:4px}
+  .card .count{right:2px;top:2px;min-width:16px;padding:1px 3px;font-size:7px}
+  .investment-badge{left:2px;top:2px;padding:2px 3px;font-size:7px}
+  .card:has(.build-btn:not(:disabled)):hover{outline-width:2px}
+
+  .landmark-turn-row{
+    display:grid;
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto;
+    gap:2px;
+    min-height:0;
+    overflow:hidden;
+  }
+  .landmark-turn-row>.panel{height:auto;min-height:0}
+  .landmark-turn-row>.panel:first-child>.section-title{display:none}
+  .landmarks{grid-template-columns:repeat(6,minmax(0,1fr));gap:2px}
+  .landmark{min-height:0;aspect-ratio:63/88;border-radius:5px;border-width:1px}
+  .landmark-image{border-radius:4px}
+  .landmark.done{box-shadow:inset 0 0 0 2px var(--gold)}
+  .landmark.done::after{top:2px;right:2px;width:15px;height:15px;font-size:10px}
+
+  .turn-side-panel{max-height:112px;overflow:hidden;padding:2px!important}
+  .turn-side-panel .turn-box{min-height:0;height:auto;padding:3px;border-radius:5px;align-content:start}
+  .turn-box h2{margin:0;font-size:11px;line-height:1.1}
+  .turn-side-panel .dice-stage{min-height:45px;margin:1px 0}
+  .dice-roll-animation{gap:2px;padding:3px 5px;border-radius:6px;border-width:1px}
+  .dice-roll-label{font-size:8px}
+  .rolling-dice{gap:5px}
+  .die{width:31px;height:31px;border-radius:6px;font-size:26px;border-width:1px}
+  .settled-dice{gap:3px}
+  .settled-dice small{font-size:10px}
+  .dice-roll-total{font-size:8px}
+  .dice-roll-total strong{font-size:14px}
+  .turn-box .actions{margin-top:2px;gap:3px;flex-wrap:nowrap}
+  .turn-box .btn{padding:4px 6px;border-radius:5px;font-size:9px;line-height:1.1}
+  .turn-box .btn.big{padding:5px 7px;font-size:10px}
+  .decision{padding:4px;border-radius:5px;max-height:76px;overflow:auto}
+  .decision h3{margin:0 0 2px;font-size:10px}
+  .decision p{margin:1px 0;font-size:8px;line-height:1.2}
+  .choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+  .choice-grid .btn{white-space:normal;padding:3px;font-size:8px}
+
+  .desktop-log-sidebar{display:none!important}
+  .mobile-log-modal{width:calc(100vw - 12px);height:calc(100dvh - 20px);max-height:none;padding:8px;border-radius:9px}
+  .mobile-log-modal .row{margin-bottom:5px}
+  .mobile-log-modal h2{margin:0;font-size:16px}
+  .mobile-modal-logs{height:calc(100dvh - 78px);padding:7px}
+  .mobile-modal-logs .log{font-size:10px;padding:4px 2px}
+
+  #toast{bottom:calc(8px + env(safe-area-inset-bottom));max-width:92vw}
+  .toast{padding:6px 10px;font-size:10px}
+}
+
+
+@media (max-width:640px) and (max-height:700px) and (orientation:portrait){
+  .players-section{height:68px;min-height:68px}
+  .players-section .section-title{height:10px}
+  .players{height:52px}
+  .player{padding:1px 3px}
+  .player-head{font-size:8px}
+  .coins{font-size:10px}
+  .landmark-dots{height:5px}
+  .landmark-dot{width:5px;height:5px}
+  .market-label{height:13px;min-height:13px}
+  .market .card{height:86px;aspect-ratio:auto}
+  .landmarks .landmark{height:63px;aspect-ratio:auto}
+  .turn-side-panel{max-height:88px}
+  .turn-side-panel .dice-stage{min-height:35px}
+  .die{width:26px;height:26px;font-size:22px}
+  .turn-box h2{font-size:10px}
+  .turn-box .btn.big{padding:4px 5px;font-size:9px}
+}
+
+@media (max-width:370px) and (orientation:portrait){
+  body:has(.game-layout) .topbar .brand{min-width:76px;max-width:76px}
+  body:has(.game-layout) .topbar .btn{min-width:27px;padding:3px}
+  .players-section{height:76px;min-height:76px}
+  .players{height:57px}
+  .turn-side-panel{max-height:102px}
+}
+
   </style>
 </head>
 <body>
@@ -668,7 +870,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.2.2';
+const APP_VERSION='v1.3.0';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -727,10 +929,10 @@ function renderLobby(){
   document.querySelectorAll('[data-remove-cpu]').forEach(button=>button.onclick=()=>lobbyAction('remove_cpu',{cpuId:button.dataset.removeCpu}));document.getElementById('addCpu')?.addEventListener('click',()=>lobbyAction('add_cpu'));document.getElementById('saveLobbySettings')?.addEventListener('click',()=>lobbyAction('settings',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('startOnlineGame')?.addEventListener('click',()=>lobbyAction('start',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('leaveRoom').onclick=leaveToRooms;bindCommon();
 }
 function banCheckHtml(item,selected=[]){const detail=item.rolls?.length?`出目 ${item.rolls.join('・')} / ${item.cost}コイン`:`ランドマーク / ${item.cost}コイン`;return`<label class="ban-check"><input type="checkbox" name="initialBan" value="${esc(item.id)}" ${selected.includes(item.id)?'checked':''}><span><b>${esc(item.name)}</b><small>${esc(detail)}</small></span></label>`}
-function onlineTopbar(showGameButtons=true){return`<header class="topbar"><div class="brand">街コロ オンライン ${APP_VERSION}<small>新装版＋プラスシャープ / 固定4部屋</small></div><div class="row"><span class="room-badge">${esc(roomState?.roomName||'')}</span>${showGameButtons&&game?`<button class="btn outline" data-cmd="results">${game.winnerId?'リザルト':'途中集計'}</button><button class="btn outline" data-cmd="ids">カード一覧</button>`:''}${roomState?.isHost&&roomState.status!=='lobby'?'<button class="btn danger" data-cmd="reset">ロビーへ戻す</button>':''}<button class="btn outline" data-cmd="rooms">部屋一覧</button></div></header>`}
+function onlineTopbar(showGameButtons=true){return`<header class="topbar"><div class="brand">街コロ オンライン ${APP_VERSION}<small>新装版＋プラスシャープ / 固定4部屋</small></div><div class="row"><span class="room-badge">${esc(roomState?.roomName||'')}</span>${showGameButtons&&game?`<button class="btn outline mobile-log-button" data-cmd="logs">ログ</button><button class="btn outline" data-cmd="results">${game.winnerId?'リザルト':'途中集計'}</button><button class="btn outline" data-cmd="ids">カード一覧</button>`:''}${roomState?.isHost&&roomState.status!=='lobby'?'<button class="btn danger" data-cmd="reset">ロビーへ戻す</button>':''}<button class="btn outline" data-cmd="rooms">部屋一覧</button></div></header>`}
 function topbar(){return onlineTopbar(true)}
 function render(){if(!roomState)return renderRoomSelect();if(!game)return renderLobby();if(game.phase==='ban_pick')return renderBanPick();renderGame()}
-function bindCommon(){document.querySelector('[data-cmd="ids"]')?.addEventListener('click',showIds);document.querySelector('[data-cmd="results"]')?.addEventListener('click',showResults);document.querySelector('[data-cmd="reset"]')?.addEventListener('click',resetGame);document.querySelector('[data-cmd="rooms"]')?.addEventListener('click',leaveToRooms)}
+function bindCommon(){document.querySelector('[data-cmd="logs"]')?.addEventListener('click',showGameLog);document.querySelector('[data-cmd="ids"]')?.addEventListener('click',showIds);document.querySelector('[data-cmd="results"]')?.addEventListener('click',showResults);document.querySelector('[data-cmd="reset"]')?.addEventListener('click',resetGame);document.querySelector('[data-cmd="rooms"]')?.addEventListener('click',leaveToRooms)}
 function resetGame(){if(!roomState?.isHost)return;if(!confirm('現在のゲームを終了し、同じ参加者でロビーへ戻しますか？'))return;sendWs({type:'reset_room'})}
 async function init(){currentName=localStorage.getItem('machikoro-online-name')||'SABA';const savedRoom=localStorage.getItem('machikoro-online-room');if(savedRoom&&ROOM_IDS.includes(savedRoom)&&workerConfigured())connectRoom(savedRoom,currentName,true);else loadRooms()}
 function activeLandmarks(g){return meta.landmarks.filter(l=>g.activeLandmarkIds?.includes(l.id))}
@@ -804,11 +1006,11 @@ function renderGame(){
   const landmarks=activeLandmarks(g);
   const banText=(g.bans?.all||[]).length?`${g.bans.all.length}枚BAN中`:'BANなし';
   app.innerHTML=`<div class="shell">${topbar()}<main class="page game-layout"><div class="board">
-    ${g.winnerId?`<section class="panel section"><div class="turn-box"><h1>🏆 ${esc(g.players.find(p=>p.id===g.winnerId)?.name)}の勝利</h1><p>有効なランドマーク${landmarks.length}種類をすべて完成させました。</p><button class="btn gold big" data-open-results>リザルトを見る</button></div></section>`:''}
-    <section class="panel section"><div class="section-title"><h2>プレイヤー</h2><span class="hint">第${g.turnNo}手番 / ${esc(banText)}</span></div><div class="players">${g.players.map((p,i)=>playerPanel(p,i,g)).join('')}</div></section>
-    <section class="panel section"><div class="section-title"><h2>市場</h2><span class="hint">1～6を5種類＋7～12を5種類</span></div><div class="market-decks"><div class="market-group"><div class="market-label"><b>🎲 1～6の施設</b><span>山札 ${g.deckRemaining.low}枚</span></div><div class="market">${marketCards(lowMarket)}</div></div><div class="market-group"><div class="market-label"><b>🎲 7～12の施設</b><span>山札 ${g.deckRemaining.high}枚</span></div><div class="market">${marketCards(highMarket)}</div></div></div></section>
+    ${g.winnerId?`<section class="panel section winner-section"><div class="turn-box"><h1>🏆 ${esc(g.players.find(p=>p.id===g.winnerId)?.name)}の勝利</h1><p>有効なランドマーク${landmarks.length}種類をすべて完成させました。</p><button class="btn gold big" data-open-results>リザルトを見る</button></div></section>`:''}
+    <section class="panel section players-section"><div class="section-title"><h2>プレイヤー</h2><span class="hint">第${g.turnNo}手番 / ${esc(banText)}</span></div><div class="players">${g.players.map((p,i)=>playerPanel(p,i,g)).join('')}</div></section>
+    <section class="panel section market-section"><div class="section-title"><h2>市場</h2><span class="hint">1～6を5種類＋7～12を5種類</span></div><div class="market-decks"><div class="market-group"><div class="market-label"><b>🎲 1～6の施設</b><span>山札 ${g.deckRemaining.low}枚</span></div><div class="market">${marketCards(lowMarket)}</div></div><div class="market-group"><div class="market-label"><b>🎲 7～12の施設</b><span>山札 ${g.deckRemaining.high}枚</span></div><div class="market">${marketCards(highMarket)}</div></div></div></section>
     <div class="landmark-turn-row"><section class="panel section"><div class="section-title"><h2>ランドマーク</h2><span class="hint">有効な${landmarks.length}種類を完成で勝利</span></div><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${me.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${me.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p><div class="row"><span class="cost">${l.cost}コイン</span><span class="grow"></span>${!me.landmarks[l.id]&&mine&&!g.pending&&g.phase==='build'?`<button class="btn gold" data-build-landmark="${l.id}" ${me.coins<l.cost?'disabled':''}>完成</button>`:''}</div></div>`).join('')}</div></section><section class="panel section turn-side-panel">${turnHtml(g,me)}</section></div>
-  </div><aside class="sidebar"><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
+  </div><aside class="sidebar desktop-log-sidebar"><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
   bindCommon();bindGame();restoreLogPosition();if(activeVisual?.kind==='coin')renderActiveEffect();else if(activeVisual?.kind==='dice')renderDiceAnimation(activeVisual);else startNextEffect();document.querySelector('[data-open-results]')?.addEventListener('click',showResults);
 }
 function bindGame(){
@@ -831,6 +1033,12 @@ function resultIncomeRows(map,kind='card'){
   const entries=Object.entries(map||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
   if(!entries.length)return'<p class="hint">該当なし</p>';
   return `<div class="result-income-list">${entries.map(([id,amount])=>`<div><span>${esc(kind==='landmark'?byId(meta.landmarks,id)?.name||id:byId(meta.cards,id)?.name||id)}</span><b>+${amount}コイン</b></div>`).join('')}</div>`;
+}
+function showGameLog(){
+  if(!game)return;
+  const div=document.createElement('div');div.className='modal-backdrop';
+  div.innerHTML=`<div class="modal mobile-log-modal"><div class="row"><h2 class="grow">ゲームログ</h2><button class="btn" data-close>閉じる</button></div><div class="logs mobile-modal-logs">${game.logs.slice().reverse().map(logHtml).join('')}</div></div>`;
+  document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
 }
 function showResults(){
   if(!game?.stats)return;
