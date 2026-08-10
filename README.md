@@ -1,11 +1,14 @@
-# 街コロ オンライン版 GitHub Pages用
+# 街コロ オンライン v1.3.3 GitHub Pages 更新
 
-Cloudflare Worker URL設定済みです。
+Cloudflare Workerの更新は不要です。
+GitHubリポジトリ直下の `index.html` をこの版で上書きしてください。
+`assets/cards` はそのまま残してください。
 
-設定済みWorker:
-https://machikoro-ws.naitoryo7110.workers.dev
-
-このフォルダの中身をGitHubリポジトリのルートへアップロードし、
-Settings → Pages → Deploy from a branch → main / root を選択してください。
-
-カード画像は assets/cards/ にJPEGで配置します。
+変更点:
+- 各プレイヤーが所有する赤施設の発動出目を赤い丸数字で表示
+  - PC: 「街を見る」の下
+  - スマホ: ランドマーク進捗マスの下
+- プレイヤー欄の「プレイヤー」見出しを削除
+- 市場カード／街詳細カードの `×1` などの枚数表示を拡大
+- ランドマーク画像を縦横比を維持したまま枠内最大表示
+- バージョンを v1.3.3 に更新

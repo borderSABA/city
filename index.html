@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.3.2</title>
+  <title>街コロ オンライン v1.3.3</title>
   <style>
 :root{
   color-scheme:light;
@@ -915,6 +915,111 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
   .turn-side-panel .dice-stage{min-height:44px!important}
   .turn-box .actions [data-roll]{min-height:34px!important;padding:6px 3px!important;font-size:10px!important}
 }
+
+
+/* ==================================================
+   v1.3.3：赤施設出目・枚数表示・ランドマーク画像調整
+================================================== */
+/* PC：街を見るの下へ、所有する赤施設の発動出目を表示 */
+.red-rolls{
+  min-height:24px;
+  margin-top:5px;
+  color:var(--red);
+  font-size:20px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:1px;
+  text-align:center;
+  white-space:nowrap;
+}
+.red-rolls.empty{visibility:hidden}
+
+/* 市場／街詳細の ×枚数を大きくする */
+.market .card .count,
+.city-modal .card .count{
+  min-width:38px;
+  padding:4px 8px;
+  font-size:16px;
+  line-height:1.05;
+  border:2px solid rgba(255,255,255,.88);
+  box-shadow:0 2px 6px rgba(0,0,0,.22);
+}
+
+/* ランドマーク画像は枠内を最大限使い、縦横比を維持 */
+.landmark{
+  padding:0!important;
+}
+.landmark-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+
+@media (max-width:640px) and (orientation:portrait){
+  /* 「プレイヤー」見出し削除後の余白も詰める */
+  .players-section .section-title{
+    justify-content:flex-end!important;
+  }
+
+  /* ランドマーク進捗の下へ赤施設の出目 */
+  .landmark-dots{
+    bottom:24px!important;
+  }
+  .red-rolls{
+    position:absolute;
+    left:4px;
+    right:4px;
+    bottom:4px;
+    z-index:1;
+    min-height:16px;
+    margin:0;
+    font-size:15px;
+    line-height:16px;
+    letter-spacing:0;
+    text-align:center;
+    overflow:hidden;
+  }
+  .tech-invest-mini{
+    left:4px!important;
+    right:auto!important;
+    top:27px!important;
+    bottom:auto!important;
+  }
+
+  /* スマホでも枚数は読めるサイズを維持 */
+  .market .card .count,
+  .city-modal .card .count{
+    right:3px!important;
+    top:3px!important;
+    min-width:28px!important;
+    padding:3px 5px!important;
+    font-size:12px!important;
+    border-width:1px!important;
+  }
+
+  /* 市場下と街詳細のランドマーク画像を余白いっぱいまで拡大 */
+  .landmark-turn-row .landmark-image,
+  .city-modal .landmark-image{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    margin:0!important;
+  }
+}
+
+@media (max-width:640px) and (max-height:700px) and (orientation:portrait){
+  .landmark-dots{bottom:20px!important}
+  .red-rolls{bottom:2px;font-size:12px;line-height:13px;min-height:13px}
+  .tech-invest-mini{top:23px!important}
+  .market .card .count,
+  .city-modal .card .count{font-size:11px!important;min-width:25px!important;padding:2px 4px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1100,7 +1205,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.2';
+const APP_VERSION='v1.3.3';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1166,11 +1271,16 @@ function bindCommon(){document.querySelector('[data-cmd="logs"]')?.addEventListe
 function resetGame(){if(!roomState?.isHost)return;if(!confirm('現在のゲームを終了し、同じ参加者でロビーへ戻しますか？'))return;sendWs({type:'reset_room'})}
 async function init(){currentName=localStorage.getItem('machikoro-online-name')||'SABA';const savedRoom=localStorage.getItem('machikoro-online-room');if(savedRoom&&ROOM_IDS.includes(savedRoom)&&workerConfigured())connectRoom(savedRoom,currentName,true);else loadRooms()}
 function activeLandmarks(g){return meta.landmarks.filter(l=>g.activeLandmarkIds?.includes(l.id))}
+const circledRoll=n=>({1:'①',2:'②',3:'③',4:'④',5:'⑤',6:'⑥',7:'⑦',8:'⑧',9:'⑨',10:'⑩',11:'⑪',12:'⑫',13:'⑬',14:'⑭'}[n]||`(${n})`);
+function redRollsHtml(p){
+  const rolls=[...new Set(Object.entries(p.city||{}).filter(([id,count])=>Number(count)>0&&byId(meta.cards,id)?.type==='red').flatMap(([id])=>byId(meta.cards,id)?.rolls||[]))].sort((a,b)=>a-b);
+  return rolls.length?`<div class="red-rolls" title="赤施設の発動出目：${rolls.join('・')}" aria-label="赤施設の発動出目 ${rolls.join('、')}">${rolls.map(circledRoll).join('')}</div>`:'<div class="red-rolls empty"></div>';
+}
 function playerPanel(p,index,g){
   const active=activeLandmarks(g),done=active.filter(l=>p.landmarks[l.id]).length;
   const techAmount=Number(p.investments?.tech_startup||0);
   const techHtml=(p.city?.tech_startup||0)>0?`<span class="tech-invest-mini">IT積立 ${techAmount}🪙</span>`:'';
-  return `<div class="player ${p.isCurrent?'current':''} ${p.id===g.viewerId?'me':''}" data-player-id="${esc(p.id)}"><div class="player-head"><span>${index+1}. ${esc(p.name)} ${p.isCpu?'🤖':p.connected===false?'（切断中）':''}</span><span class="coins"><span data-player-coins="${esc(p.id)}">${displayedCoins(p)}</span>🪙 ${latestPlayerDelta(p.id,g)}</span></div><div class="mini">施設 ${Object.values(p.city).reduce((a,b)=>a+b,0)}軒 / ランドマーク ${done}/${active.length}${techHtml}</div><div class="landmark-dots">${active.map(l=>`<span class="landmark-dot ${p.landmarks[l.id]?'done':''}" title="${esc(l.name)}"></span>`).join('')}</div><button class="btn outline" data-view-city="${p.id}">街を見る</button></div>`;
+  return `<div class="player ${p.isCurrent?'current':''} ${p.id===g.viewerId?'me':''}" data-player-id="${esc(p.id)}"><div class="player-head"><span>${index+1}. ${esc(p.name)} ${p.isCpu?'🤖':p.connected===false?'（切断中）':''}</span><span class="coins"><span data-player-coins="${esc(p.id)}">${displayedCoins(p)}</span>🪙 ${latestPlayerDelta(p.id,g)}</span></div><div class="mini">施設 ${Object.values(p.city).reduce((a,b)=>a+b,0)}軒 / ランドマーク ${done}/${active.length}${techHtml}</div><div class="landmark-dots">${active.map(l=>`<span class="landmark-dot ${p.landmarks[l.id]?'done':''}" title="${esc(l.name)}"></span>`).join('')}</div><button class="btn outline" data-view-city="${p.id}">街を見る</button>${redRollsHtml(p)}</div>`;
 }
 function latestPlayerDelta(playerId,g){
   if(effectAnimationsBusy()||visualCoins)return'';
@@ -1237,7 +1347,7 @@ function renderGame(){
   const banText=(g.bans?.all||[]).length?`${g.bans.all.length}枚BAN中`:'BANなし';
   app.innerHTML=`<div class="shell">${topbar()}<main class="page game-layout"><div class="board">
     ${g.winnerId?`<section class="panel section winner-section"><div class="turn-box"><h1>🏆 ${esc(g.players.find(p=>p.id===g.winnerId)?.name)}の勝利</h1><p>有効なランドマーク${landmarks.length}種類をすべて完成させました。</p><button class="btn gold big" data-open-results>リザルトを見る</button></div></section>`:''}
-    <section class="panel section players-section"><div class="section-title"><h2>プレイヤー</h2><span class="hint">第${g.turnNo}手番 / ${esc(banText)}</span></div><div class="players">${g.players.map((p,i)=>playerPanel(p,i,g)).join('')}</div></section>
+    <section class="panel section players-section"><div class="section-title"><span class="hint">第${g.turnNo}手番 / ${esc(banText)}</span></div><div class="players">${g.players.map((p,i)=>playerPanel(p,i,g)).join('')}</div></section>
     <section class="panel section market-section"><div class="section-title"><h2>市場</h2><span class="hint">1～6を5種類＋7～12を5種類</span></div><div class="market-decks"><div class="market-group"><div class="market-label"><b>🎲 1～6の施設</b><span>山札 ${g.deckRemaining.low}枚</span></div><div class="market">${marketCards(lowMarket)}</div></div><div class="market-group"><div class="market-label"><b>🎲 7～12の施設</b><span>山札 ${g.deckRemaining.high}枚</span></div><div class="market">${marketCards(highMarket)}</div></div></div></section>
     <div class="landmark-turn-row"><section class="panel section"><div class="section-title"><h2>ランドマーク</h2><span class="hint">有効な${landmarks.length}種類を完成で勝利</span></div><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${me.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${me.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p><div class="row"><span class="cost">${l.cost}コイン</span><span class="grow"></span>${!me.landmarks[l.id]&&mine&&!g.pending&&g.phase==='build'?`<button class="btn gold" data-build-landmark="${l.id}" ${me.coins<l.cost?'disabled':''}>完成</button>`:''}</div></div>`).join('')}</div></section><section class="panel section turn-side-panel">${turnHtml(g,me)}</section></div>
   </div><aside class="sidebar desktop-log-sidebar"><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
