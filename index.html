@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.3.3</title>
+  <title>街コロ オンライン v1.3.9</title>
   <style>
 :root{
   color-scheme:light;
@@ -1257,6 +1257,208 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .turn-box .dice-roll-actions [data-roll]{min-height:29px!important;padding:5px 5px!important;font-size:9px!important}
 }
 
+
+
+/* ==================================================
+   v1.3.7：ターン枠の固定配置・スマホプレイヤー欄拡張
+================================================== */
+/* 赤・青・緑・紫は常に同じ4段を確保する */
+.turn-roll-summary{
+  grid-template-rows:repeat(4,18px)!important;
+  min-height:78px!important;
+  height:78px!important;
+  max-height:78px!important;
+  overflow:hidden!important;
+}
+.turn-roll-row{
+  height:18px!important;
+  min-height:18px!important;
+}
+.turn-roll-values.empty{visibility:hidden}
+
+/* 操作ボタン領域自体を常設し、ロール/建設で中身だけ切り替える */
+.turn-side-panel .turn-box{
+  position:relative!important;
+  padding-bottom:64px!important;
+}
+.turn-action-slot{
+  position:absolute;
+  left:9px;
+  right:9px;
+  bottom:9px;
+  height:42px;
+  min-height:42px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-start;
+  overflow:hidden;
+  z-index:4;
+}
+.turn-action-slot .actions{
+  margin:0!important;
+  width:100%;
+  min-height:42px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-start;
+  gap:6px;
+  flex-wrap:nowrap;
+}
+.turn-action-slot .dice-roll-actions{
+  position:static!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:100%!important;
+  max-width:none!important;
+}
+.turn-action-slot .pass-actions{
+  position:static!important;
+}
+.turn-action-slot .pass-actions [data-pass]{
+  min-height:38px;
+  white-space:nowrap;
+}
+.turn-action-placeholder{
+  width:100%;
+  height:42px;
+  visibility:hidden;
+}
+
+@media (max-width:640px) and (orientation:portrait){
+  /* プレイヤー6枠の高さを増やし、名前・コイン・進捗・赤青数字の重なりを防止 */
+  .players-section{
+    height:148px!important;
+    min-height:148px!important;
+    overflow:visible!important;
+  }
+  .players{
+    height:128px!important;
+    gap:4px!important;
+  }
+  .player{
+    padding:5px 6px!important;
+  }
+  .player-head{
+    font-size:10px!important;
+    line-height:1.15!important;
+    min-height:14px;
+  }
+  .coins{font-size:13px!important}
+  .landmark-dots{bottom:39px!important}
+  .player-type-rolls.red-rolls{bottom:21px!important}
+  .player-type-rolls.blue-rolls{bottom:5px!important}
+  .player-type-rolls{
+    font-size:13px!important;
+    line-height:14px!important;
+    min-height:14px!important;
+  }
+  .tech-invest-mini{top:28px!important}
+
+  /* ターン枠はロール前後・建設フェーズでも高さと位置を固定 */
+  .turn-side-panel .turn-box{
+    padding-bottom:45px!important;
+  }
+  .turn-roll-summary{
+    grid-template-rows:repeat(4,12px)!important;
+    min-height:51px!important;
+    height:51px!important;
+    max-height:51px!important;
+    gap:1px!important;
+  }
+  .turn-roll-row{
+    height:12px!important;
+    min-height:12px!important;
+  }
+  .turn-action-slot{
+    left:4px;
+    right:4px;
+    bottom:4px;
+    height:35px;
+    min-height:35px;
+  }
+  .turn-action-slot .actions,
+  .turn-action-placeholder{min-height:35px;height:35px}
+  .turn-action-slot .dice-roll-actions [data-roll],
+  .turn-action-slot .pass-actions [data-pass]{
+    min-height:34px!important;
+    height:34px!important;
+    padding:5px 6px!important;
+    font-size:10px!important;
+  }
+
+  /* ページ自体は引き続き固定。増えたプレイヤー欄分を市場の余白から回収 */
+  .market-decks{gap:1px!important}
+  .market-group{gap:1px!important}
+  .market-label{height:13px!important;min-height:13px!important;padding:1px 4px!important}
+}
+
+@media (max-width:640px) and (max-height:700px) and (orientation:portrait){
+  .players-section{height:132px!important;min-height:132px!important}
+  .players{height:113px!important}
+  .player{padding:4px 5px!important}
+  .player-head{font-size:9px!important}
+  .coins{font-size:12px!important}
+  .landmark-dots{bottom:34px!important}
+  .player-type-rolls.red-rolls{bottom:18px!important}
+  .player-type-rolls.blue-rolls{bottom:3px!important}
+  .player-type-rolls{font-size:11px!important;line-height:12px!important;min-height:12px!important}
+  .turn-roll-summary{
+    grid-template-rows:repeat(4,10px)!important;
+    min-height:43px!important;
+    height:43px!important;
+    max-height:43px!important;
+  }
+  .turn-roll-row{height:10px!important;min-height:10px!important}
+  .turn-action-slot{height:31px;min-height:31px}
+  .turn-action-slot .actions,.turn-action-placeholder{height:31px;min-height:31px}
+  .turn-action-slot .dice-roll-actions [data-roll],
+  .turn-action-slot .pass-actions [data-pass]{height:30px!important;min-height:30px!important;font-size:9px!important;padding:4px!important}
+}
+
+
+/* ==================================================
+   v1.3.9：ビジネスセンターの各選択に1段戻るボタンを追加
+================================================== */
+.center-choice-modal{
+  max-width:760px;
+  overflow:hidden;
+}
+.center-choice-modal h2{margin:0 0 6px}
+.center-choice-modal .choice-help{margin:0 0 12px;color:var(--muted);font-size:13px}
+.center-choice-scroll{
+  max-height:min(62vh,560px);
+  overflow:auto;
+  padding:2px 4px 4px;
+}
+.center-choice-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+}
+.center-choice-grid .btn{
+  min-height:50px;
+  white-space:normal;
+  line-height:1.25;
+  padding:9px 8px;
+}
+.center-choice-footer{
+  margin-top:12px;
+  display:flex;
+  justify-content:flex-end;
+}
+.center-choice-footer .btn{min-width:150px}
+.confirm-backdrop{z-index:70}
+.decision-modal-anchor{display:none!important}
+@media(max-width:640px){
+  .modal-backdrop{padding:10px}
+  .center-choice-modal{padding:14px;max-height:92vh}
+  .center-choice-scroll{max-height:68vh}
+  .center-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .center-choice-grid .btn{min-height:46px;font-size:12px;padding:7px 6px}
+  .center-choice-footer .btn{width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -1442,7 +1644,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.6';
+const APP_VERSION='v1.3.9';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1523,10 +1725,12 @@ function playerTypeRollsHtml(p,type,label){
 function redRollsHtml(p){return playerTypeRollsHtml(p,'red','赤')}
 function blueRollsHtml(p){return playerTypeRollsHtml(p,'blue','青')}
 function turnFacilityRollsHtml(p){
-  if(!p)return'';
   const order=[['red','赤'],['blue','青'],['green','緑'],['purple','紫']];
-  const rows=order.map(([type,label])=>{const rolls=ownedRollsByType(p,type);return rolls.length?`<div class="turn-roll-row type-${type}"><span class="turn-roll-label">${label}</span><span>${rolls.map(circledRoll).join('')}</span></div>`:''}).filter(Boolean).join('');
-  return `<div class="turn-roll-summary" aria-label="現在手番プレイヤーの施設出目">${rows||'<span class="hint">施設なし</span>'}</div>`;
+  const rows=order.map(([type,label])=>{
+    const rolls=p?ownedRollsByType(p,type):[];
+    return `<div class="turn-roll-row type-${type}"><span class="turn-roll-label">${label}</span><span class="turn-roll-values ${rolls.length?'':'empty'}">${rolls.length?rolls.map(circledRoll).join(''):'・'}</span></div>`;
+  }).join('');
+  return `<div class="turn-roll-summary" aria-label="現在手番プレイヤーの施設出目">${rows}</div>`;
 }
 function playerPanel(p,index,g){
   const active=activeLandmarks(g),done=active.filter(l=>p.landmarks[l.id]).length;
@@ -1570,11 +1774,14 @@ function logHtml(log){
   }
   return `<div class="log">${esc(log.text)}</div>`;
 }
+const CENTER_CHOICE_KINDS=new Set(['business_target','business_take','business_give','renovation','demolition','moving_card','moving_target']);
+function isCenterChoice(q){return Boolean(q&&CENTER_CHOICE_KINDS.has(q.kind));}
 function decisionHtml(g){
   const q=g.pending;if(!q)return'';
   if(effectAnimationsBusy())return`<div class="decision effect-wait"><h3>演出を表示中</h3><p>ダイスとコイン処理を順番に確認しています。</p></div>`;
   const mine=q.playerId===g.viewerId;
   if(!mine){const chooser=g.players.find(p=>p.id===q.playerId);return`<div class="decision"><h3>${chooser?.isCpu?'CPUの選択中':'選択待ち'}</h3><p>${esc(chooser?.name||'プレイヤー')}：${esc(q.prompt||'処理を選択しています')}</p></div>`;}
+  if(isCenterChoice(q))return'<div class="decision-modal-anchor" aria-hidden="true"></div>';
   if(q.kind==='reroll')return`<div class="decision"><h3>電波塔</h3><p>出目 ${q.dice.map(d=>diceFaces[d]).join('')}（${q.sum}）を振り直しますか？</p><div class="actions"><button class="btn primary" data-action="reroll" data-yes="true">振り直す</button><button class="btn" data-action="reroll" data-yes="false">そのまま</button></div></div>`;
   if(q.kind==='harbor')return`<div class="decision"><h3>港</h3><p>出目 ${q.sum} を ${q.sum+2} にしますか？</p><div class="actions"><button class="btn primary" data-action="harbor" data-yes="true">＋2する</button><button class="btn" data-action="harbor" data-yes="false">使わない</button></div></div>`;
   if(q.kind==='invest')return`<div class="decision"><h3>ITベンチャー</h3><p>1コイン投資しますか？</p><div class="actions"><button class="btn primary" data-action="invest" data-yes="true">投資する</button><button class="btn" data-action="invest" data-yes="false">しない</button></div></div>`;
@@ -1586,7 +1793,13 @@ function diceStageHtml(g){
 }
 function turnHtml(g,me){
   const current=g.players.find(p=>p.id===g.currentPlayerId),mine=current?.id===g.viewerId&&!current.isCpu&&!effectAnimationsBusy();
-  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div>${decisionHtml(g)}${turnFacilityRollsHtml(current)}${mine&&!g.pending&&g.phase==='roll'?`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`:''}${mine&&!g.pending&&g.phase==='build'?'<div class="actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>':''}</div>`;
+  let actionSlot='<div class="turn-action-placeholder" aria-hidden="true"></div>';
+  if(mine&&!g.pending&&g.phase==='roll'){
+    actionSlot=`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`;
+  }else if(mine&&!g.pending&&g.phase==='build'){
+    actionSlot='<div class="actions pass-actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>';
+  }
+  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div>${decisionHtml(g)}${turnFacilityRollsHtml(current)}<div class="turn-action-slot">${actionSlot}</div></div>`;
 }
 function renderGame(){
   captureLogPosition();const g=game;queueNewVisuals(g);
@@ -1603,27 +1816,62 @@ function renderGame(){
     <section class="panel section market-section"><div class="section-title"><h2>市場</h2><span class="hint">1～6を5種類＋7～12を5種類</span></div><div class="market-decks"><div class="market-group"><div class="market-label"><b>🎲 1～6の施設</b><span>山札 ${g.deckRemaining.low}枚</span></div><div class="market">${marketCards(lowMarket)}</div></div><div class="market-group"><div class="market-label"><b>🎲 7～12の施設</b><span>山札 ${g.deckRemaining.high}枚</span></div><div class="market">${marketCards(highMarket)}</div></div></div></section>
     <div class="landmark-turn-row"><section class="panel section"><div class="section-title"><h2>ランドマーク</h2><span class="hint">有効な${landmarks.length}種類を完成で勝利</span></div><div class="landmarks">${landmarks.map(l=>`<div class="landmark ${me.landmarks[l.id]?'done':''}">${imageMap[l.id]?`<img class="landmark-image" src="${esc(imageMap[l.id])}" alt="${esc(l.name)}" onerror="this.remove()">`:''}<h3>${me.landmarks[l.id]?'✅':'🏗️'} ${esc(l.name)}</h3><p>${esc(l.text)}</p><div class="row"><span class="cost">${l.cost}コイン</span><span class="grow"></span>${!me.landmarks[l.id]&&mine&&!g.pending&&g.phase==='build'?`<button class="btn gold" data-build-landmark="${l.id}" ${me.coins<l.cost?'disabled':''}>完成</button>`:''}</div></div>`).join('')}</div></section><section class="panel section turn-side-panel">${turnHtml(g,me)}</section></div>
   </div><aside class="sidebar desktop-log-sidebar"><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
-  bindCommon();bindGame();restoreLogPosition();if(activeVisual?.kind==='coin')renderActiveEffect();else if(activeVisual?.kind==='dice')renderDiceAnimation(activeVisual);else startNextEffect();document.querySelector('[data-open-results]')?.addEventListener('click',showResults);
+  bindCommon();bindGame();syncCenterChoiceModal();restoreLogPosition();if(activeVisual?.kind==='coin')renderActiveEffect();else if(activeVisual?.kind==='dice')renderDiceAnimation(activeVisual);else startNextEffect();document.querySelector('[data-open-results]')?.addEventListener('click',showResults);
 }
 function choiceConfirmation(q,label){
   const safeLabel=String(label||'この選択');
   switch(q?.kind){
+    case 'business_take':
+      return {title:'ビジネスセンター',message:`「${safeLabel}」を受け取る施設として選びますか？`};
     case 'business_give':
-      return {title:'ビジネスセンター',message:`「${safeLabel}」を渡して、施設の交換を確定しますか？`};
+      return {title:'ビジネスセンター',message:`「${safeLabel}」を渡す施設として選びますか？`};
     case 'renovation':
       return {title:'清掃業',message:`「${safeLabel}」を休業する施設として確定しますか？`};
     case 'demolition':
       return {title:'改築屋',message:`ランドマーク「${safeLabel}」を建設前に戻しますか？`};
+    case 'moving_card':
+      return {title:'引っ越し屋',message:`「${safeLabel}」を渡す施設として選びますか？`};
     case 'moving_target':
       return {title:'引っ越し屋',message:`${safeLabel}へ、選択した施設を渡しますか？`};
     default:
       return null;
   }
 }
+function pendingChoiceSignature(q){
+  return [q?.kind||'',q?.playerId||'',q?.prompt||'',...(q?.choices||[]).map(c=>c.id)].join('|');
+}
+function syncCenterChoiceModal(){
+  const existing=document.getElementById('centerChoiceBackdrop');
+  const q=game?.pending;
+  const mine=Boolean(game&&q&&q.playerId===game.viewerId);
+  if(!q||!mine||!isCenterChoice(q)||effectAnimationsBusy()){existing?.remove();return;}
+  const signature=pendingChoiceSignature(q);
+  if(existing?.dataset.signature===signature)return;
+  existing?.remove();
+  const div=document.createElement('div');
+  div.className='modal-backdrop';
+  div.id='centerChoiceBackdrop';
+  div.dataset.signature=signature;
+  const choices=(q.choices||[]).map(c=>`<button class="btn primary" type="button" data-center-choice="${esc(c.id)}">${esc(c.label)}</button>`).join('');
+  const businessBack=['business_target','business_take','business_give'].includes(q.kind);
+  const footerButtons=[];
+  if(businessBack)footerButtons.push('<button class="btn outline" type="button" data-center-back>戻る</button>');
+  if(q.optional)footerButtons.push('<button class="btn outline" type="button" data-center-skip>何もしない</button>');
+  div.innerHTML=`<div class="modal center-choice-modal"><h2>${esc(q.prompt||'施設を選択')}</h2><p class="choice-help">候補から選択してください。確認が必要な選択は、確定前にもう一度確認します。</p><div class="center-choice-scroll"><div class="center-choice-grid">${choices}</div></div>${footerButtons.length?`<div class="center-choice-footer">${footerButtons.join('')}</div>`:''}</div>`;
+  document.body.appendChild(div);
+  div.querySelectorAll('[data-center-choice]').forEach(button=>button.onclick=()=>{
+    const label=button.textContent.trim();
+    const info=choiceConfirmation(q,label);
+    const submit=()=>{div.remove();act('choice',{value:button.dataset.centerChoice});};
+    if(info)showChoiceConfirm(info,submit);else submit();
+  });
+  div.querySelector('[data-center-back]')?.addEventListener('click',()=>{div.remove();act('choice_back',{});});
+  div.querySelector('[data-center-skip]')?.addEventListener('click',()=>{div.remove();act('choice',{skip:true});});
+}
 function showChoiceConfirm(info,onConfirm){
   document.getElementById('choiceConfirmBackdrop')?.remove();
   const div=document.createElement('div');
-  div.className='modal-backdrop';
+  div.className='modal-backdrop confirm-backdrop';
   div.id='choiceConfirmBackdrop';
   div.innerHTML=`<div class="modal confirm-modal"><h2>${esc(info.title||'確認')}</h2><p>この内容でよろしいですか？</p><div class="confirm-choice">${esc(info.message||'')}</div><div class="confirm-actions"><button class="btn outline" data-confirm-cancel>戻る</button><button class="btn primary" data-confirm-ok>確定する</button></div></div>`;
   document.body.appendChild(div);
