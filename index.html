@@ -26,7 +26,7 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
 .market{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}.card{position:relative;min-height:190px;border-radius:13px;padding:10px;background:#fff;border:2px solid var(--card,#aaa);display:flex;flex-direction:column;overflow:hidden}.card.blue{--card:var(--blue)}.card.green{--card:var(--green)}.card.red{--card:var(--red)}.card.purple{--card:var(--purple)}.card.closed{filter:grayscale(.65);opacity:.72}.card-image{width:calc(100% + 20px);height:92px;object-fit:cover;margin:-10px -10px 8px;background:#e7eceb}.card-name{font-weight:900;font-size:16px;line-height:1.15}.card-meta{display:flex;justify-content:space-between;gap:6px;font-weight:800;font-size:13px;margin:5px 0}.card-text{font-size:11px;line-height:1.45;color:#4e5d66;flex:1}.card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:8px}.count{position:absolute;right:7px;top:7px;background:#263843;color:white;border-radius:999px;min-width:27px;text-align:center;padding:3px 7px;font-weight:900;font-size:12px}.set-tag{font-size:10px;background:#edf0ef;border-radius:999px;padding:3px 6px}.build-btn{font-size:12px;padding:7px 9px}
 .landmarks{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:9px}.landmark{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px}.landmark.done{background:#fff1bd;border-color:#d8b955}.landmark h3{font-size:15px;margin:0 0 5px}.landmark p{font-size:11px;color:var(--muted);min-height:47px;margin:0 0 8px}.cost{font-weight:900;color:#9b6a0c}
 .sidebar{display:grid;align-content:start;gap:14px}.logs{height:360px;overflow:auto;background:#17242b;color:#e6ecea;border-radius:13px;padding:10px}.log{font-size:12px;border-bottom:1px solid rgba(255,255,255,.08);padding:6px 2px;line-height:1.45}.city-list{display:flex;gap:6px;flex-wrap:wrap;max-height:250px;overflow:auto}.city-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 8px;font-size:11px}.city-chip.closed{background:#ddd;text-decoration:line-through}
-.modal-backdrop{position:fixed;inset:0;z-index:50;background:rgba(23,33,39,.65);display:grid;place-items:center;padding:20px}.modal{max-width:850px;width:100%;max-height:85vh;overflow:auto;background:var(--paper);border-radius:18px;padding:20px}.id-table{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px}.id-row{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px}.id-row code{font-size:11px;color:#6b4987}
+.modal-backdrop{position:fixed;inset:0;z-index:50;background:rgba(23,33,39,.65);display:grid;place-items:center;padding:20px}.modal{max-width:850px;width:100%;max-height:85vh;overflow:auto;background:var(--paper);border-radius:18px;padding:20px}.confirm-modal{max-width:440px;text-align:center}.confirm-modal h2{margin:0 0 10px}.confirm-choice{margin:14px 0;padding:14px;border:2px solid var(--gold);border-radius:12px;background:#fff8db;font-weight:900;font-size:18px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.confirm-actions .btn{min-height:46px}.id-table{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px}.id-row{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px}.id-row code{font-size:11px;color:#6b4987}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:100;pointer-events:none}.toast{background:#263843;color:#fff;border-radius:999px;padding:10px 16px;box-shadow:var(--shadow);animation:toast 2.7s both}@keyframes toast{0%{opacity:0;transform:translateY(10px)}10%,85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-6px)}}.loading{display:grid;place-items:center;height:100vh;font-weight:900}
 @media(max-width:900px){.game-layout{grid-template-columns:1fr}.sidebar{grid-template-columns:1fr 1fr}.hero{grid-template-columns:1fr}.hero-art{display:none}}@media(max-width:640px){.page{padding:8px}.topbar{padding:8px}.forms{grid-template-columns:1fr}.home,.lobby{margin:0;border-radius:0;padding:16px}.sidebar{grid-template-columns:1fr}.market{grid-template-columns:repeat(2,minmax(0,1fr))}.card{min-height:178px}.players{grid-template-columns:repeat(2,minmax(0,1fr))}.brand{font-size:16px}.room-badge{font-size:12px}.section{padding:10px}}
 
@@ -1108,6 +1108,155 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
   }
 }
 
+
+
+/* ==================================================
+   v1.3.6：施設選択の確認ダイアログ
+================================================== */
+.player-type-rolls{
+  min-height:22px;
+  margin-top:2px;
+  font-size:19px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:1px;
+  text-align:center;
+  white-space:nowrap;
+}
+.player-type-rolls.red-rolls{color:var(--red)}
+.player-type-rolls.blue-rolls{color:var(--blue)}
+.player-type-rolls.empty{visibility:hidden}
+
+.turn-side-panel .turn-box{position:relative!important;padding-bottom:58px!important}
+.turn-roll-summary{
+  display:grid;
+  gap:2px;
+  align-content:start;
+  margin-top:2px;
+  max-height:72px;
+  overflow:hidden;
+}
+.turn-roll-row{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-height:16px;
+  font-size:15px;
+  line-height:1;
+  font-weight:900;
+  white-space:nowrap;
+}
+.turn-roll-label{
+  display:inline-grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  color:#fff;
+  font-size:10px;
+  flex:none;
+}
+.turn-roll-row.type-red{color:var(--red)}
+.turn-roll-row.type-red .turn-roll-label{background:var(--red)}
+.turn-roll-row.type-blue{color:var(--blue)}
+.turn-roll-row.type-blue .turn-roll-label{background:var(--blue)}
+.turn-roll-row.type-green{color:var(--green)}
+.turn-roll-row.type-green .turn-roll-label{background:var(--green)}
+.turn-roll-row.type-purple{color:var(--purple)}
+.turn-roll-row.type-purple .turn-roll-label{background:var(--purple)}
+
+.turn-box .dice-roll-actions{
+  position:absolute!important;
+  left:9px!important;
+  bottom:9px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  width:auto!important;
+  z-index:4;
+}
+
+/* ゲーム中はページそのものをスクロールさせない。ログやモーダルのみ内部スクロール。 */
+html:has(.game-layout),body:has(.game-layout){height:100%;overflow:hidden!important;overscroll-behavior:none}
+body:has(.game-layout) .shell{height:100dvh;min-height:0;overflow:hidden!important}
+body:has(.game-layout) .page.game-layout{overflow:hidden!important;min-height:0}
+body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
+
+@media (min-width:641px){
+  body:has(.game-layout) .page.game-layout{
+    height:calc(100dvh - 58px);
+    max-height:calc(100dvh - 58px);
+  }
+  body:has(.game-layout) .game-layout .board,
+  body:has(.game-layout) .desktop-log-sidebar{max-height:100%;overflow:hidden}
+  body:has(.game-layout) .desktop-log-sidebar .logs{max-height:calc(100dvh - 112px)!important}
+}
+
+@media (max-width:640px) and (orientation:portrait){
+  /* 赤→青→ランドマーク進捗の順に下部へ積む */
+  .player-type-rolls{
+    position:absolute;
+    left:4px;
+    right:4px;
+    z-index:1;
+    min-height:13px;
+    margin:0!important;
+    font-size:12px!important;
+    line-height:13px!important;
+    letter-spacing:0!important;
+    overflow:hidden;
+  }
+  .player-type-rolls.red-rolls{bottom:18px!important}
+  .player-type-rolls.blue-rolls{bottom:3px!important}
+  .landmark-dots{bottom:34px!important}
+
+  .turn-side-panel .turn-box{
+    padding-bottom:46px!important;
+  }
+  .turn-roll-summary{
+    gap:1px;
+    margin:0 0 2px;
+    max-height:49px;
+  }
+  .turn-roll-row{
+    gap:2px;
+    min-height:11px;
+    font-size:10px;
+  }
+  .turn-roll-label{
+    width:13px;
+    height:13px;
+    font-size:7px;
+  }
+  .turn-box .dice-roll-actions{
+    left:4px!important;
+    bottom:4px!important;
+    gap:3px!important;
+    max-width:calc(100% - 8px);
+  }
+  .turn-box .dice-roll-actions [data-roll]{
+    width:auto!important;
+    min-width:0!important;
+    min-height:34px!important;
+    padding:6px 7px!important;
+    font-size:10px!important;
+  }
+}
+
+@media (max-width:640px) and (max-height:700px) and (orientation:portrait){
+  .player-type-rolls{font-size:10px!important;line-height:11px!important;min-height:11px}
+  .player-type-rolls.red-rolls{bottom:15px!important}
+  .player-type-rolls.blue-rolls{bottom:2px!important}
+  .landmark-dots{bottom:28px!important}
+  .turn-side-panel .turn-box{padding-bottom:39px!important}
+  .turn-roll-summary{max-height:39px}
+  .turn-roll-row{font-size:8px;min-height:9px}
+  .turn-roll-label{width:11px;height:11px;font-size:6px}
+  .turn-box .dice-roll-actions [data-roll]{min-height:29px!important;padding:5px 5px!important;font-size:9px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1293,7 +1442,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.4';
+const APP_VERSION='v1.3.6';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1337,11 +1486,15 @@ function connectRoom(roomId,name,isReconnect=false){
   const token=getToken(roomId);const url=`${wsOrigin()}/ws/${roomId}?token=${encodeURIComponent(token)}&name=${encodeURIComponent(name)}`;
   ws=new WebSocket(url);
   ws.onopen=()=>{pingTimer=setInterval(()=>sendWs({type:'ping'}),25000)};
-  ws.onmessage=event=>{let data;try{data=JSON.parse(event.data)}catch{return};if(data.type==='error'){showToast(data.error||'操作エラーです。');return}if(data.type==='left'){intentionalClose=true;ws.close();return loadRooms()}if(data.type==='welcome'&&data.meta)meta=data.meta;if(data.room)roomState=data.room;if('game' in data){const previousGame=game;game=data.game;if(!previousGame&&game)resetEffectAnimations();if(game)queueNewVisuals(game)}if(meta&&roomState){if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}else renderLobby()}};
+  ws.onmessage=event=>{let data;try{data=JSON.parse(event.data)}catch{return};if(data.type==='error'){showToast(data.error||'操作エラーです。');return}if(data.type==='left'){intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();try{oldWs?.close()}catch{}return loadRooms()}if(data.type==='welcome'&&data.meta)meta=data.meta;if(data.room)roomState=data.room;if('game' in data){const previousGame=game;game=data.game;if(!previousGame&&game)resetEffectAnimations();if(game)queueNewVisuals(game)}if(meta&&roomState){if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}else renderLobby()}};
   ws.onclose=()=>{if(pingTimer)clearInterval(pingTimer);pingTimer=null;if(intentionalClose)return;if(currentRoomId){app.innerHTML='<div class="loading">再接続しています…</div>';reconnectTimer=setTimeout(()=>connectRoom(currentRoomId,currentName,true),2000)}};
   ws.onerror=()=>{if(!isReconnect)showToast('部屋へ接続できません。対戦中・満員・Worker URLをご確認ください。')};
 }
-function leaveToRooms(){localStorage.removeItem('machikoro-online-room');if(roomState?.status==='lobby'&&ws?.readyState===WebSocket.OPEN){sendWs({type:'lobby',payload:{action:'leave'}});return}intentionalClose=true;try{ws?.close()}catch{}ws=null;loadRooms()}
+function leaveToRooms(){
+  localStorage.removeItem('machikoro-online-room');
+  if(roomState?.status==='lobby'&&ws?.readyState===WebSocket.OPEN){sendWs({type:'lobby',payload:{action:'leave'}});return}
+  intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();try{oldWs?.close()}catch{}loadRooms();
+}
 function lobbyAction(action,payload={}){sendWs({type:'lobby',payload:{action,...payload}})}
 function selectedInitialBans(){return [...document.querySelectorAll('input[name="initialBan"]:checked')].map(input=>input.value)}
 function renderLobby(){
@@ -1360,15 +1513,26 @@ function resetGame(){if(!roomState?.isHost)return;if(!confirm('現在のゲー�
 async function init(){currentName=localStorage.getItem('machikoro-online-name')||'SABA';const savedRoom=localStorage.getItem('machikoro-online-room');if(savedRoom&&ROOM_IDS.includes(savedRoom)&&workerConfigured())connectRoom(savedRoom,currentName,true);else loadRooms()}
 function activeLandmarks(g){return meta.landmarks.filter(l=>g.activeLandmarkIds?.includes(l.id))}
 const circledRoll=n=>({1:'①',2:'②',3:'③',4:'④',5:'⑤',6:'⑥',7:'⑦',8:'⑧',9:'⑨',10:'⑩',11:'⑪',12:'⑫',13:'⑬',14:'⑭'}[n]||`(${n})`);
-function redRollsHtml(p){
-  const rolls=[...new Set(Object.entries(p.city||{}).filter(([id,count])=>Number(count)>0&&byId(meta.cards,id)?.type==='red').flatMap(([id])=>byId(meta.cards,id)?.rolls||[]))].sort((a,b)=>a-b);
-  return rolls.length?`<div class="red-rolls" title="赤施設の発動出目：${rolls.join('・')}" aria-label="赤施設の発動出目 ${rolls.join('、')}">${rolls.map(circledRoll).join('')}</div>`:'<div class="red-rolls empty"></div>';
+function ownedRollsByType(p,type){
+  return [...new Set(Object.entries(p?.city||{}).filter(([id,count])=>Number(count)>0&&byId(meta.cards,id)?.type===type).flatMap(([id])=>byId(meta.cards,id)?.rolls||[]))].sort((a,b)=>a-b);
+}
+function playerTypeRollsHtml(p,type,label){
+  const rolls=ownedRollsByType(p,type);
+  return rolls.length?`<div class="player-type-rolls ${type}-rolls" title="${label}施設の発動出目：${rolls.join('・')}" aria-label="${label}施設の発動出目 ${rolls.join('、')}">${rolls.map(circledRoll).join('')}</div>`:`<div class="player-type-rolls ${type}-rolls empty"></div>`;
+}
+function redRollsHtml(p){return playerTypeRollsHtml(p,'red','赤')}
+function blueRollsHtml(p){return playerTypeRollsHtml(p,'blue','青')}
+function turnFacilityRollsHtml(p){
+  if(!p)return'';
+  const order=[['red','赤'],['blue','青'],['green','緑'],['purple','紫']];
+  const rows=order.map(([type,label])=>{const rolls=ownedRollsByType(p,type);return rolls.length?`<div class="turn-roll-row type-${type}"><span class="turn-roll-label">${label}</span><span>${rolls.map(circledRoll).join('')}</span></div>`:''}).filter(Boolean).join('');
+  return `<div class="turn-roll-summary" aria-label="現在手番プレイヤーの施設出目">${rows||'<span class="hint">施設なし</span>'}</div>`;
 }
 function playerPanel(p,index,g){
   const active=activeLandmarks(g),done=active.filter(l=>p.landmarks[l.id]).length;
   const techAmount=Number(p.investments?.tech_startup||0);
   const techHtml=(p.city?.tech_startup||0)>0?`<span class="tech-invest-mini">IT積立 ${techAmount}🪙</span>`:'';
-  return `<div class="player ${p.isCurrent?'current':''} ${p.id===g.viewerId?'me':''}" data-player-id="${esc(p.id)}"><div class="player-head"><span>${index+1}. ${esc(p.name)} ${p.isCpu?'🤖':p.connected===false?'（切断中）':''}</span><span class="coins"><span data-player-coins="${esc(p.id)}">${displayedCoins(p)}</span>🪙 ${latestPlayerDelta(p.id,g)}</span></div><div class="mini">施設 ${Object.values(p.city).reduce((a,b)=>a+b,0)}軒 / ランドマーク ${done}/${active.length}${techHtml}</div><div class="landmark-dots">${active.map(l=>`<span class="landmark-dot ${p.landmarks[l.id]?'done':''}" title="${esc(l.name)}"></span>`).join('')}</div><button class="btn outline" data-view-city="${p.id}">街を見る</button>${redRollsHtml(p)}</div>`;
+  return `<div class="player ${p.isCurrent?'current':''} ${p.id===g.viewerId?'me':''}" data-player-id="${esc(p.id)}"><div class="player-head"><span>${index+1}. ${esc(p.name)} ${p.isCpu?'🤖':p.connected===false?'（切断中）':''}</span><span class="coins"><span data-player-coins="${esc(p.id)}">${displayedCoins(p)}</span>🪙 ${latestPlayerDelta(p.id,g)}</span></div><div class="mini">施設 ${Object.values(p.city).reduce((a,b)=>a+b,0)}軒 / ランドマーク ${done}/${active.length}${techHtml}</div><div class="landmark-dots">${active.map(l=>`<span class="landmark-dot ${p.landmarks[l.id]?'done':''}" title="${esc(l.name)}"></span>`).join('')}</div><button class="btn outline" data-view-city="${p.id}">街を見る</button>${redRollsHtml(p)}${blueRollsHtml(p)}</div>`;
 }
 function latestPlayerDelta(playerId,g){
   if(effectAnimationsBusy()||visualCoins)return'';
@@ -1422,7 +1586,7 @@ function diceStageHtml(g){
 }
 function turnHtml(g,me){
   const current=g.players.find(p=>p.id===g.currentPlayerId),mine=current?.id===g.viewerId&&!current.isCpu&&!effectAnimationsBusy();
-  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div>${decisionHtml(g)}${mine&&!g.pending&&g.phase==='roll'?`<div class="actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`:''}${mine&&!g.pending&&g.phase==='build'?'<div class="actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>':''}</div>`;
+  return `<div class="turn-box"><h2>${esc(current?.name)}のターン ${current?.isCpu?'🤖':''}</h2><div class="dice-stage" id="diceStage">${diceStageHtml(g)}</div>${decisionHtml(g)}${turnFacilityRollsHtml(current)}${mine&&!g.pending&&g.phase==='roll'?`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`:''}${mine&&!g.pending&&g.phase==='build'?'<div class="actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>':''}</div>`;
 }
 function renderGame(){
   captureLogPosition();const g=game;queueNewVisuals(g);
@@ -1441,13 +1605,40 @@ function renderGame(){
   </div><aside class="sidebar desktop-log-sidebar"><section class="panel section"><div class="section-title"><h2>ゲームログ</h2></div><div class="logs" id="logs">${g.logs.slice().reverse().map(logHtml).join('')}</div></section></aside></main></div>`;
   bindCommon();bindGame();restoreLogPosition();if(activeVisual?.kind==='coin')renderActiveEffect();else if(activeVisual?.kind==='dice')renderDiceAnimation(activeVisual);else startNextEffect();document.querySelector('[data-open-results]')?.addEventListener('click',showResults);
 }
+function choiceConfirmation(q,label){
+  const safeLabel=String(label||'この選択');
+  switch(q?.kind){
+    case 'business_give':
+      return {title:'ビジネスセンター',message:`「${safeLabel}」を渡して、施設の交換を確定しますか？`};
+    case 'renovation':
+      return {title:'清掃業',message:`「${safeLabel}」を休業する施設として確定しますか？`};
+    case 'demolition':
+      return {title:'改築屋',message:`ランドマーク「${safeLabel}」を建設前に戻しますか？`};
+    case 'moving_target':
+      return {title:'引っ越し屋',message:`${safeLabel}へ、選択した施設を渡しますか？`};
+    default:
+      return null;
+  }
+}
+function showChoiceConfirm(info,onConfirm){
+  document.getElementById('choiceConfirmBackdrop')?.remove();
+  const div=document.createElement('div');
+  div.className='modal-backdrop';
+  div.id='choiceConfirmBackdrop';
+  div.innerHTML=`<div class="modal confirm-modal"><h2>${esc(info.title||'確認')}</h2><p>この内容でよろしいですか？</p><div class="confirm-choice">${esc(info.message||'')}</div><div class="confirm-actions"><button class="btn outline" data-confirm-cancel>戻る</button><button class="btn primary" data-confirm-ok>確定する</button></div></div>`;
+  document.body.appendChild(div);
+  const close=()=>div.remove();
+  div.querySelector('[data-confirm-cancel]').onclick=close;
+  div.querySelector('[data-confirm-ok]').onclick=()=>{close();onConfirm();};
+  div.onclick=e=>{if(e.target===div)close();};
+}
 function bindGame(){
   document.querySelectorAll('[data-roll]').forEach(b=>b.onclick=()=>act('roll',{diceCount:Number(b.dataset.roll)}));
   document.querySelectorAll('[data-build-card]').forEach(b=>b.onclick=()=>act('build_card',{cardId:b.dataset.buildCard}));
   document.querySelectorAll('[data-build-landmark]').forEach(b=>b.onclick=()=>act('build_landmark',{landmarkId:b.dataset.buildLandmark}));
   document.querySelector('[data-pass]')?.addEventListener('click',()=>act('pass'));
   document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action,{yes:b.dataset.yes==='true'}));
-  document.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>act('choice',{value:b.dataset.choice}));
+  document.querySelectorAll('[data-choice]').forEach(b=>b.onclick=()=>{const q=game?.pending,info=choiceConfirmation(q,b.textContent.trim());if(info)showChoiceConfirm(info,()=>act('choice',{value:b.dataset.choice}));else act('choice',{value:b.dataset.choice});});
   document.querySelector('[data-skip-choice]')?.addEventListener('click',()=>act('choice',{skip:true}));
   document.querySelectorAll('[data-view-city]').forEach(b=>b.onclick=()=>showCity(b.dataset.viewCity));
 }
