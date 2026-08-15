@@ -1552,6 +1552,31 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .player-type-rolls.red-rolls{bottom:19px!important}
   .player-type-rolls.blue-rolls{bottom:4px!important}
 }
+
+
+/* ==================================================
+   v1.3.12：スマホで駅完成時の2個振りボタンが見切れる問題を修正
+================================================== */
+.roll-icon{display:inline}
+@media (max-width:640px) and (orientation:portrait){
+  .turn-action-slot .dice-roll-actions{
+    display:flex!important;
+    width:100%!important;
+    gap:3px!important;
+    overflow:visible!important;
+  }
+  .turn-action-slot .dice-roll-actions [data-roll]{
+    flex:1 1 0!important;
+    width:0!important;
+    min-width:0!important;
+    max-width:none!important;
+    padding-left:2px!important;
+    padding-right:2px!important;
+    white-space:nowrap!important;
+    text-align:center!important;
+  }
+  .turn-action-slot .dice-roll-actions [data-roll] .roll-icon{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -1737,7 +1762,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.10';
+const APP_VERSION='v1.3.12';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1793,10 +1818,20 @@ function leaveToRooms(){
 function lobbyAction(action,payload={}){sendWs({type:'lobby',payload:{action,...payload}})}
 function selectedInitialBans(){return [...document.querySelectorAll('input[name="initialBan"]:checked')].map(input=>input.value)}
 function renderLobby(){
-  if(!roomState||!meta)return;resetEffectAnimations();const isHost=roomState.isHost;const low=meta.cards.filter(c=>c.supply==='low'),high=meta.cards.filter(c=>c.supply==='high');const total=roomState.players.length;
+  if(!roomState||!meta)return;
+  // ロビーはサーバーから数秒おきに更新されるため、再描画前にホストの編集中BAN設定を退避する。
+  // これをしないと <details> が閉じ、未保存のチェックもサーバー値へ巻き戻ってしまう。
+  const existingBanDetails=document.querySelector('.ban-settings');
+  const lobbyDraft=existingBanDetails&&roomState.isHost?{
+    open:existingBanDetails.open,
+    initialBans:selectedInitialBans(),
+    playerBanEnabled:document.getElementById('playerBanEnabled')?.checked??roomState.settings?.playerBanEnabled??false
+  }:null;
+  resetEffectAnimations();const isHost=roomState.isHost;const low=meta.cards.filter(c=>c.supply==='low'),high=meta.cards.filter(c=>c.supply==='high');const total=roomState.players.length;
   const seats=roomState.players.map((p,i)=>`<div class="seat ${p.isCpu?'cpu':''}"><span class="num">${i+1}</span><div class="grow"><b>${esc(p.name)} ${p.isHost?'👑':''} ${p.isCpu?'🤖':''}</b><div class="mini">${p.isCpu?'CPU':p.connected?'接続中':'切断中'}</div></div>${isHost&&p.isCpu?`<button class="btn danger" data-remove-cpu="${p.id}">削除</button>`:''}</div>`).join('');
-  const settings=roomState.settings;
-  app.innerHTML=`<div class="shell">${onlineTopbar(false)}<main class="page"><section class="panel lobby online-lobby"><div class="section-title"><h1>${esc(roomState.roomName)} ロビー</h1><span class="room-badge">${total} / 6</span></div><div class="seat-list">${seats}</div>${isHost?`<div class="row lobby-cpu-actions"><button class="btn outline" id="addCpu" ${total>=6?'disabled':''}>CPUを追加</button><span class="hint">人間＋CPUで最大6人</span></div><div class="panel form-card lobby-settings"><h2>ゲーム設定</h2><label class="form-check form-switch ban-toggle"><input class="form-check-input" type="checkbox" id="playerBanEnabled" ${settings.playerBanEnabled?'checked':''}><span class="form-check-label">各プレイヤーBANピックを有効にする</span></label><details class="ban-settings"><summary>初期BANピックを設定（${settings.initialBans.length}枚）</summary><div class="ban-section"><h3>1～6の施設</h3><div class="ban-check-grid">${low.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div><div class="ban-section"><h3>7～12の施設</h3><div class="ban-check-grid">${high.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div><div class="ban-section"><h3>ランドマーク</h3><div class="ban-check-grid">${meta.landmarks.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div></details><div class="actions"><button class="btn outline" id="saveLobbySettings">設定を反映</button><button class="btn primary big" id="startOnlineGame" ${total<2?'disabled':''}>ゲーム開始</button></div></div>`:`<div class="decision"><h3>ホストの開始待ち</h3><p>初期BAN：${settings.initialBans.length}枚／プレイヤーBAN：${settings.playerBanEnabled?'ON':'OFF'}</p></div>`}<button class="btn outline" id="leaveRoom">部屋一覧へ戻る</button></section></main></div>`;
+  const serverSettings=roomState.settings;
+  const settings=lobbyDraft?{...serverSettings,initialBans:lobbyDraft.initialBans,playerBanEnabled:lobbyDraft.playerBanEnabled}:serverSettings;
+  app.innerHTML=`<div class="shell">${onlineTopbar(false)}<main class="page"><section class="panel lobby online-lobby"><div class="section-title"><h1>${esc(roomState.roomName)} ロビー</h1><span class="room-badge">${total} / 6</span></div><div class="seat-list">${seats}</div>${isHost?`<div class="row lobby-cpu-actions"><button class="btn outline" id="addCpu" ${total>=6?'disabled':''}>CPUを追加</button><span class="hint">人間＋CPUで最大6人</span></div><div class="panel form-card lobby-settings"><h2>ゲーム設定</h2><label class="form-check form-switch ban-toggle"><input class="form-check-input" type="checkbox" id="playerBanEnabled" ${settings.playerBanEnabled?'checked':''}><span class="form-check-label">各プレイヤーBANピックを有効にする</span></label><details class="ban-settings"${lobbyDraft?.open?' open':''}><summary>初期BANピックを設定（${settings.initialBans.length}枚）</summary><div class="ban-section"><h3>1～6の施設</h3><div class="ban-check-grid">${low.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div><div class="ban-section"><h3>7～12の施設</h3><div class="ban-check-grid">${high.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div><div class="ban-section"><h3>ランドマーク</h3><div class="ban-check-grid">${meta.landmarks.map(item=>banCheckHtml(item,settings.initialBans)).join('')}</div></div></details><div class="actions"><button class="btn outline" id="saveLobbySettings">設定を反映</button><button class="btn primary big" id="startOnlineGame" ${total<2?'disabled':''}>ゲーム開始</button></div></div>`:`<div class="decision"><h3>ホストの開始待ち</h3><p>初期BAN：${settings.initialBans.length}枚／プレイヤーBAN：${settings.playerBanEnabled?'ON':'OFF'}</p></div>`}<button class="btn outline" id="leaveRoom">部屋一覧へ戻る</button></section></main></div>`;
   document.querySelectorAll('[data-remove-cpu]').forEach(button=>button.onclick=()=>lobbyAction('remove_cpu',{cpuId:button.dataset.removeCpu}));document.getElementById('addCpu')?.addEventListener('click',()=>lobbyAction('add_cpu'));document.getElementById('saveLobbySettings')?.addEventListener('click',()=>lobbyAction('settings',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('startOnlineGame')?.addEventListener('click',()=>lobbyAction('start',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('leaveRoom').onclick=leaveToRooms;bindCommon();
 }
 function banCheckHtml(item,selected=[]){const detail=item.rolls?.length?`出目 ${item.rolls.join('・')} / ${item.cost}コイン`:`ランドマーク / ${item.cost}コイン`;return`<label class="ban-check"><input type="checkbox" name="initialBan" value="${esc(item.id)}" ${selected.includes(item.id)?'checked':''}><span><b>${esc(item.name)}</b><small>${esc(detail)}</small></span></label>`}
@@ -1888,7 +1923,7 @@ function turnHtml(g,me){
   const current=g.players.find(p=>p.id===g.currentPlayerId),mine=current?.id===g.viewerId&&!current.isCpu&&!effectAnimationsBusy();
   let actionSlot='<div class="turn-action-placeholder" aria-hidden="true"></div>';
   if(mine&&!g.pending&&g.phase==='roll'){
-    actionSlot=`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`;
+    actionSlot=`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1"><span class="roll-icon">🎲</span><span>1個振る</span></button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2"><span class="roll-icon">🎲🎲</span><span>2個振る</span></button>':''}</div>`;
   }else if(mine&&!g.pending&&g.phase==='build'){
     actionSlot='<div class="actions pass-actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>';
   }
