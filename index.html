@@ -1552,32 +1552,58 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .player-type-rolls.red-rolls{bottom:19px!important}
   .player-type-rolls.blue-rolls{bottom:4px!important}
 }
+</style>
 
+<style>
+/* MK_MOBILE_DICE_V1_3_12 */
+@media (max-width: 640px) {
+  /* 駅完成時の2個振りを確実に収めるため、スマホだけダイス枠を縦に拡張 */
+  .turn-box {
+    position: relative !important;
+    min-height: 196px !important;
+    padding-bottom: 102px !important;
+    overflow: visible !important;
+  }
 
-/* ==================================================
-   v1.3.12：スマホで駅完成時の2個振りボタンが見切れる問題を修正
-================================================== */
-.roll-icon{display:inline}
-@media (max-width:640px) and (orientation:portrait){
-  .turn-action-slot .dice-roll-actions{
-    display:flex!important;
-    width:100%!important;
-    gap:3px!important;
-    overflow:visible!important;
+  /* ダイス選択ボタン専用の縦2段領域 */
+  .turn-box .mk-mobile-roll-stack {
+    position: absolute !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 9px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: minmax(38px, auto) !important;
+    gap: 6px !important;
+    z-index: 12 !important;
+    margin: 0 !important;
   }
-  .turn-action-slot .dice-roll-actions [data-roll]{
-    flex:1 1 0!important;
-    width:0!important;
-    min-width:0!important;
-    max-width:none!important;
-    padding-left:2px!important;
-    padding-right:2px!important;
-    white-space:nowrap!important;
-    text-align:center!important;
+
+  .turn-box .mk-mobile-roll-stack > button,
+  .turn-box .mk-mobile-roll-stack > .btn {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    margin: 0 !important;
+    padding: 6px 10px !important;
+    line-height: 1.15 !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
   }
-  .turn-action-slot .dice-roll-actions [data-roll] .roll-icon{display:none!important}
+
+  /* 元のactions等のflex設定の影響で横並びへ戻らないようにする */
+  .turn-box .mk-roll-one,
+  .turn-box .mk-roll-two {
+    flex: none !important;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+  }
 }
 </style>
+
 </head>
 <body>
   <div id="app"><div class="loading">街を準備しています…</div></div>
@@ -1923,7 +1949,7 @@ function turnHtml(g,me){
   const current=g.players.find(p=>p.id===g.currentPlayerId),mine=current?.id===g.viewerId&&!current.isCpu&&!effectAnimationsBusy();
   let actionSlot='<div class="turn-action-placeholder" aria-hidden="true"></div>';
   if(mine&&!g.pending&&g.phase==='roll'){
-    actionSlot=`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1"><span class="roll-icon">🎲</span><span>1個振る</span></button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2"><span class="roll-icon">🎲🎲</span><span>2個振る</span></button>':''}</div>`;
+    actionSlot=`<div class="actions dice-roll-actions"><button class="btn primary big" data-roll="1">🎲 1個振る</button>${me.landmarks.train_station?'<button class="btn gold big" data-roll="2">🎲🎲 2個振る</button>':''}</div>`;
   }else if(mine&&!g.pending&&g.phase==='build'){
     actionSlot='<div class="actions pass-actions"><button class="btn outline" data-pass>何も建設せず終了</button></div>';
   }
@@ -2066,5 +2092,68 @@ function showIds(){
 init();
 
   </script>
+
+<script>
+/* MK_MOBILE_DICE_V1_3_12_JS */
+(() => {
+  const normalize = s => (s || '').replace(/\s+/g, '');
+
+  function arrangeMobileDiceButtons() {
+    if (!window.matchMedia('(max-width: 640px)').matches) return;
+
+    document.querySelectorAll('.turn-box').forEach(turnBox => {
+      const buttons = [...turnBox.querySelectorAll('button')];
+      const one = buttons.find(b => {
+        const t = normalize(b.textContent);
+        return t === 'ダイスを振る' || t === '1個振る' || t === 'ダイス1個' || t === '1個';
+      });
+      const two = buttons.find(b => {
+        const t = normalize(b.textContent);
+        return t === '2個振る' || t === 'ダイス2個' || t === '2個';
+      });
+
+      /* どちらも無いフェーズでは何もしない */
+      if (!one && !two) {
+        const old = turnBox.querySelector('.mk-mobile-roll-stack');
+        if (old && !old.children.length) old.remove();
+        return;
+      }
+
+      let stack = turnBox.querySelector('.mk-mobile-roll-stack');
+      if (!stack) {
+        stack = document.createElement('div');
+        stack.className = 'mk-mobile-roll-stack';
+        turnBox.appendChild(stack);
+      }
+
+      if (one) {
+        one.classList.add('mk-roll-one');
+        stack.appendChild(one);
+      }
+      if (two) {
+        two.classList.add('mk-roll-two');
+        stack.appendChild(two);
+      }
+    });
+  }
+
+  let queued = false;
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      arrangeMobileDiceButtons();
+    });
+  };
+
+  const observer = new MutationObserver(schedule);
+  observer.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
+  window.addEventListener('resize', schedule, {passive:true});
+  document.addEventListener('DOMContentLoaded', schedule);
+  schedule();
+})();
+</script>
+
 </body>
 </html>
