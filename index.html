@@ -1666,19 +1666,18 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
 }
 
 
-/* v1.3.15: 手番中央表示・個人別ダイス集計 */
+/* v1.3.16: 手番中央表示3秒固定・個人別ロール履歴 */
 .turn-announcement-overlay{
   position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none;
-  background:rgba(20,28,33,.08);animation:turnOverlayFade 3s ease both;
+  background:rgba(20,28,33,.08);opacity:1;
 }
 .turn-announcement-card{
   min-width:min(78vw,430px);padding:20px 28px;border-radius:18px;text-align:center;
   background:rgba(255,253,245,.97);border:3px solid var(--gold);box-shadow:0 12px 36px rgba(23,36,43,.28);
   font-size:clamp(24px,4vw,42px);font-weight:1000;letter-spacing:.03em;
-  animation:turnCardPop 3s ease both;
+  animation:turnCardPopIn .18s ease-out both;
 }
-@keyframes turnOverlayFade{0%{opacity:0}12%,80%{opacity:1}100%{opacity:0}}
-@keyframes turnCardPop{0%{opacity:0;transform:scale(.82)}15%{opacity:1;transform:scale(1.04)}25%,78%{transform:scale(1)}100%{opacity:0;transform:scale(.98)}}
+@keyframes turnCardPopIn{0%{opacity:0;transform:scale(.86)}100%{opacity:1;transform:scale(1)}}
 .player-dice-summary{margin-top:8px}
 .player-dice-summary .result-metrics{grid-template-columns:repeat(4,minmax(62px,1fr));margin-bottom:8px}
 .player-dice-title{margin:10px 0 5px;font-size:12px;font-weight:900;color:var(--muted)}
@@ -1686,11 +1685,20 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
 .player-dice-cell{display:grid;place-items:center;gap:1px;min-height:38px;padding:4px 2px;border:1px solid var(--line);border-radius:7px;background:#f6f8f7;text-align:center}
 .player-dice-cell b{font-size:12px}.player-dice-cell small{font-size:9px;color:var(--muted)}
 .player-dice-cell.has-roll{background:#fff8db;border-color:#e8cf80}
+.player-dice-history{display:flex;flex-wrap:wrap;gap:6px}
+.player-roll-entry{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#f6f8f7;font-size:12px}
+.player-roll-entry b{font-size:11px;color:var(--muted)}
+.player-roll-entry .roll-dice{font-size:14px;font-weight:900;color:var(--ink)}
+.player-roll-entry.rerolled{border-color:#d7b869;background:#fff8db}
+.player-roll-entry small{font-size:9px;color:#9b6a0c;font-weight:900}
 @media(max-width:640px){
   .turn-announcement-card{min-width:78vw;padding:16px 18px;font-size:27px}
   .player-dice-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
   .player-dice-cell{min-height:34px}.player-dice-cell b{font-size:11px}.player-dice-cell small{font-size:8px}
   .player-dice-summary .result-metrics{grid-template-columns:repeat(4,1fr)}
+  .player-dice-history{gap:4px}
+  .player-roll-entry{padding:4px 6px;font-size:11px}
+  .player-roll-entry .roll-dice{font-size:13px}
 }
 </style>
 
@@ -1714,6 +1722,7 @@ const VISUAL_DISPLAY_MS=2000;
 const RESCUE_DISPLAY_MS=700;
 const VISUAL_GAP_MS=160;
 const DICE_ROLLING_MS=1300;
+const TURN_ANNOUNCEMENT_MS=3000;
 
 const diceFaces=['','⚀','⚁','⚂','⚃','⚄','⚅'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1758,7 +1767,7 @@ function showTurnAnnouncement(log){
   div.className='turn-announcement-overlay';
   div.innerHTML=`<div class="turn-announcement-card">${esc(log.playerName)}のターン</div>`;
   document.body.appendChild(div);
-  turnAnnouncementTimer=setTimeout(()=>{div.remove();turnAnnouncementTimer=null},3000);
+  turnAnnouncementTimer=setTimeout(()=>{div.remove();turnAnnouncementTimer=null},TURN_ANNOUNCEMENT_MS);
 }
 function queueTurnAnnouncement(g){
   const logs=(g?.logs||[]).filter(log=>log.kind==='turn'&&Number.isFinite(log.seq)).sort((a,b)=>a.seq-b.seq);
@@ -1902,7 +1911,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.15';
+const APP_VERSION='v1.3.16';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -2178,9 +2187,14 @@ function showGameLog(){
 function diceCountGrid(values,start,end){
   return `<div class="player-dice-grid">${Array.from({length:end-start+1},(_,i)=>{const n=start+i,count=Number(values?.[n]||0);return `<div class="player-dice-cell ${count?'has-roll':''}"><b>${n}</b><small>${count}回</small></div>`}).join('')}</div>`;
 }
+function playerDiceHistoryHtml(history){
+  const rolls=Array.isArray(history)?history:[];
+  if(!rolls.length)return '<div class="hint">まだダイスを振っていません。</div>';
+  return `<div class="player-dice-history">${rolls.map((roll,index)=>{const dice=Array.isArray(roll?.dice)?roll.dice:[];const value=dice.length?dice.join('・'):'-';return `<span class="player-roll-entry ${roll?.reroll?'rerolled':''}"><b>${index+1}回目：</b><span class="roll-dice">${esc(value)}</span>${roll?.reroll?'<small>振り直し</small>':''}</span>`}).join('')}</div>`;
+}
 function playerDiceSummaryHtml(dice){
   const d=dice||{};
-  return `<div class="player-dice-summary"><div class="result-metrics"><div><small>ロール</small><b>${d.rolls||0}</b></div><div><small>1個</small><b>${d.oneDie||0}</b></div><div><small>2個</small><b>${d.twoDice||0}</b></div><div><small>振り直し</small><b>${d.rerolls||0}</b></div></div><div class="player-dice-title">実際に振った出目合計</div>${diceCountGrid(d.totals,1,12)}<div class="player-dice-title">効果処理に使われた最終出目</div>${diceCountGrid(d.resolvedTotals,1,14)}</div>`;
+  return `<div class="player-dice-summary"><div class="result-metrics"><div><small>ロール</small><b>${d.rolls||0}</b></div><div><small>1個</small><b>${d.oneDie||0}</b></div><div><small>2個</small><b>${d.twoDice||0}</b></div><div><small>振り直し</small><b>${d.rerolls||0}</b></div></div><div class="player-dice-title">出目履歴</div>${playerDiceHistoryHtml(d.history)}</div>`;
 }
 function showResults(){
   if(!game?.stats)return;
