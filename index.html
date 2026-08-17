@@ -1666,16 +1666,16 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
 }
 
 
-/* v1.3.14: 手番中央表示・個人別ダイス集計 */
+/* v1.3.15: 手番中央表示・個人別ダイス集計 */
 .turn-announcement-overlay{
   position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none;
-  background:rgba(20,28,33,.08);animation:turnOverlayFade 1.4s ease both;
+  background:rgba(20,28,33,.08);animation:turnOverlayFade 3s ease both;
 }
 .turn-announcement-card{
   min-width:min(78vw,430px);padding:20px 28px;border-radius:18px;text-align:center;
   background:rgba(255,253,245,.97);border:3px solid var(--gold);box-shadow:0 12px 36px rgba(23,36,43,.28);
   font-size:clamp(24px,4vw,42px);font-weight:1000;letter-spacing:.03em;
-  animation:turnCardPop 1.4s ease both;
+  animation:turnCardPop 3s ease both;
 }
 @keyframes turnOverlayFade{0%{opacity:0}12%,80%{opacity:1}100%{opacity:0}}
 @keyframes turnCardPop{0%{opacity:0;transform:scale(.82)}15%{opacity:1;transform:scale(1.04)}25%,78%{transform:scale(1)}100%{opacity:0;transform:scale(.98)}}
@@ -1758,7 +1758,7 @@ function showTurnAnnouncement(log){
   div.className='turn-announcement-overlay';
   div.innerHTML=`<div class="turn-announcement-card">${esc(log.playerName)}のターン</div>`;
   document.body.appendChild(div);
-  turnAnnouncementTimer=setTimeout(()=>{div.remove();turnAnnouncementTimer=null},1400);
+  turnAnnouncementTimer=setTimeout(()=>{div.remove();turnAnnouncementTimer=null},3000);
 }
 function queueTurnAnnouncement(g){
   const logs=(g?.logs||[]).filter(log=>log.kind==='turn'&&Number.isFinite(log.seq)).sort((a,b)=>a.seq-b.seq);
@@ -1902,7 +1902,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.14';
+const APP_VERSION='v1.3.15';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
