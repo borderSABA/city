@@ -1664,6 +1664,34 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   }
   .turn-action-slot .pass-actions{height:73px!important;min-height:73px!important}
 }
+
+
+/* v1.3.14: 手番中央表示・個人別ダイス集計 */
+.turn-announcement-overlay{
+  position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none;
+  background:rgba(20,28,33,.08);animation:turnOverlayFade 1.4s ease both;
+}
+.turn-announcement-card{
+  min-width:min(78vw,430px);padding:20px 28px;border-radius:18px;text-align:center;
+  background:rgba(255,253,245,.97);border:3px solid var(--gold);box-shadow:0 12px 36px rgba(23,36,43,.28);
+  font-size:clamp(24px,4vw,42px);font-weight:1000;letter-spacing:.03em;
+  animation:turnCardPop 1.4s ease both;
+}
+@keyframes turnOverlayFade{0%{opacity:0}12%,80%{opacity:1}100%{opacity:0}}
+@keyframes turnCardPop{0%{opacity:0;transform:scale(.82)}15%{opacity:1;transform:scale(1.04)}25%,78%{transform:scale(1)}100%{opacity:0;transform:scale(.98)}}
+.player-dice-summary{margin-top:8px}
+.player-dice-summary .result-metrics{grid-template-columns:repeat(4,minmax(62px,1fr));margin-bottom:8px}
+.player-dice-title{margin:10px 0 5px;font-size:12px;font-weight:900;color:var(--muted)}
+.player-dice-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.player-dice-cell{display:grid;place-items:center;gap:1px;min-height:38px;padding:4px 2px;border:1px solid var(--line);border-radius:7px;background:#f6f8f7;text-align:center}
+.player-dice-cell b{font-size:12px}.player-dice-cell small{font-size:9px;color:var(--muted)}
+.player-dice-cell.has-roll{background:#fff8db;border-color:#e8cf80}
+@media(max-width:640px){
+  .turn-announcement-card{min-width:78vw;padding:16px 18px;font-size:27px}
+  .player-dice-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+  .player-dice-cell{min-height:34px}.player-dice-cell b{font-size:11px}.player-dice-cell small{font-size:8px}
+  .player-dice-summary .result-metrics{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 
 </head>
@@ -1681,6 +1709,7 @@ let currentRoomId=null,currentName='',intentionalClose=false,reconnectTimer=null
 let logFollowLatest=true,logScrollTop=0,logScrollHeight=0;
 let visualInitialized=false,lastVisualLogSeq=0;
 let visualQueue=[],activeVisual=null,visualTimer=null,diceInterval=null,diceSettleTimer=null,visualCoins=null;
+let lastTurnAnnouncementSeq=0,turnAnnouncementTimer=null;
 const VISUAL_DISPLAY_MS=2000;
 const RESCUE_DISPLAY_MS=700;
 const VISUAL_GAP_MS=160;
@@ -1716,6 +1745,29 @@ function resetEffectAnimations(){
   if(diceSettleTimer)clearTimeout(diceSettleTimer);
   visualTimer=null;diceInterval=null;diceSettleTimer=null;visualQueue=[];activeVisual=null;visualCoins=null;
   visualInitialized=false;lastVisualLogSeq=0;
+  if(turnAnnouncementTimer)clearTimeout(turnAnnouncementTimer);
+  turnAnnouncementTimer=null;lastTurnAnnouncementSeq=0;
+  document.getElementById('turnAnnouncementOverlay')?.remove();
+}
+function showTurnAnnouncement(log){
+  if(!log?.playerName)return;
+  document.getElementById('turnAnnouncementOverlay')?.remove();
+  if(turnAnnouncementTimer)clearTimeout(turnAnnouncementTimer);
+  const div=document.createElement('div');
+  div.id='turnAnnouncementOverlay';
+  div.className='turn-announcement-overlay';
+  div.innerHTML=`<div class="turn-announcement-card">${esc(log.playerName)}のターン</div>`;
+  document.body.appendChild(div);
+  turnAnnouncementTimer=setTimeout(()=>{div.remove();turnAnnouncementTimer=null},1400);
+}
+function queueTurnAnnouncement(g){
+  const logs=(g?.logs||[]).filter(log=>log.kind==='turn'&&Number.isFinite(log.seq)).sort((a,b)=>a.seq-b.seq);
+  if(!logs.length)return;
+  const fresh=logs.filter(log=>log.seq>lastTurnAnnouncementSeq);
+  if(!fresh.length)return;
+  const latest=fresh[fresh.length-1];
+  lastTurnAnnouncementSeq=latest.seq;
+  showTurnAnnouncement(latest);
 }
 function effectType(reason){
   const card=(meta?.cards||[]).find(c=>reason===c.name||reason.includes(c.name));
@@ -1850,7 +1902,7 @@ function startNextEffect(){
 
 const WORKER_ORIGIN='https://machikoro-ws.naitoryo7110.workers.dev';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.13';
+const APP_VERSION='v1.3.14';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1894,7 +1946,7 @@ function connectRoom(roomId,name,isReconnect=false){
   const token=getToken(roomId);const url=`${wsOrigin()}/ws/${roomId}?token=${encodeURIComponent(token)}&name=${encodeURIComponent(name)}`;
   ws=new WebSocket(url);
   ws.onopen=()=>{pingTimer=setInterval(()=>sendWs({type:'ping'}),25000)};
-  ws.onmessage=event=>{let data;try{data=JSON.parse(event.data)}catch{return};if(data.type==='error'){showToast(data.error||'操作エラーです。');return}if(data.type==='left'){intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();try{oldWs?.close()}catch{}return loadRooms()}if(data.type==='welcome'&&data.meta)meta=data.meta;if(data.room)roomState=data.room;if('game' in data){const previousGame=game;game=data.game;if(!previousGame&&game)resetEffectAnimations();if(game)queueNewVisuals(game)}if(meta&&roomState){if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}else renderLobby()}};
+  ws.onmessage=event=>{let data;try{data=JSON.parse(event.data)}catch{return};if(data.type==='error'){showToast(data.error||'操作エラーです。');return}if(data.type==='left'){intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();try{oldWs?.close()}catch{}return loadRooms()}if(data.type==='welcome'&&data.meta)meta=data.meta;if(data.room)roomState=data.room;if('game' in data){const previousGame=game;game=data.game;if(!previousGame&&game)resetEffectAnimations();if(game){queueNewVisuals(game);queueTurnAnnouncement(game)}}if(meta&&roomState){if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}else renderLobby()}};
   ws.onclose=()=>{if(pingTimer)clearInterval(pingTimer);pingTimer=null;if(intentionalClose)return;if(currentRoomId){app.innerHTML='<div class="loading">再接続しています…</div>';reconnectTimer=setTimeout(()=>connectRoom(currentRoomId,currentName,true),2000)}};
   ws.onerror=()=>{if(!isReconnect)showToast('部屋へ接続できません。対戦中・満員・Worker URLをご確認ください。')};
 }
@@ -2123,11 +2175,18 @@ function showGameLog(){
   div.innerHTML=`<div class="modal mobile-log-modal"><div class="row"><h2 class="grow">ゲームログ</h2><button class="btn" data-close>閉じる</button></div><div class="logs mobile-modal-logs">${game.logs.slice().reverse().map(logHtml).join('')}</div></div>`;
   document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
 }
+function diceCountGrid(values,start,end){
+  return `<div class="player-dice-grid">${Array.from({length:end-start+1},(_,i)=>{const n=start+i,count=Number(values?.[n]||0);return `<div class="player-dice-cell ${count?'has-roll':''}"><b>${n}</b><small>${count}回</small></div>`}).join('')}</div>`;
+}
+function playerDiceSummaryHtml(dice){
+  const d=dice||{};
+  return `<div class="player-dice-summary"><div class="result-metrics"><div><small>ロール</small><b>${d.rolls||0}</b></div><div><small>1個</small><b>${d.oneDie||0}</b></div><div><small>2個</small><b>${d.twoDice||0}</b></div><div><small>振り直し</small><b>${d.rerolls||0}</b></div></div><div class="player-dice-title">実際に振った出目合計</div>${diceCountGrid(d.totals,1,12)}<div class="player-dice-title">効果処理に使われた最終出目</div>${diceCountGrid(d.resolvedTotals,1,14)}</div>`;
+}
 function showResults(){
   if(!game?.stats)return;
   const stats=game.stats,dice=stats.dice.turn,extra=stats.dice.extra;
   const bans=[...(game.bans?.initial||[]).map(id=>`初期：${itemName(id)}`),...(game.bans?.player||[]).map(p=>`${p.playerName}：${p.itemId?itemName(p.itemId):'BANなし'}`)];
-  const playerSections=game.players.map(player=>{const s=stats.players[player.id]||{};return`<section class="result-player"><div class="section-title"><h3>${esc(player.name)} ${player.id===game.winnerId?'🏆':''}</h3><span>${player.coins}コインで終了</span></div><div class="result-metrics"><div><small>総収入</small><b>+${s.totalIncome||0}</b></div><div><small>総支出</small><b>-${s.totalExpense||0}</b></div><div><small>施設建設費</small><b>${s.buildSpent||0}</b></div><div><small>ランドマーク建設費</small><b>${s.landmarkSpent||0}</b></div></div><h4>施設が稼いだコイン</h4>${resultIncomeRows(s.facilityIncome,'card')}<h4>ランドマークが稼いだコイン</h4>${resultIncomeRows(s.landmarkIncome,'landmark')}</section>`}).join('');
+  const playerSections=game.players.map(player=>{const s=stats.players[player.id]||{};return`<section class="result-player"><div class="section-title"><h3>${esc(player.name)} ${player.id===game.winnerId?'🏆':''}</h3><span>${player.coins}コインで終了</span></div><div class="result-metrics"><div><small>総収入</small><b>+${s.totalIncome||0}</b></div><div><small>総支出</small><b>-${s.totalExpense||0}</b></div><div><small>施設建設費</small><b>${s.buildSpent||0}</b></div><div><small>ランドマーク建設費</small><b>${s.landmarkSpent||0}</b></div></div><h4>個人の出目</h4>${playerDiceSummaryHtml(s.dice)}<h4>施設が稼いだコイン</h4>${resultIncomeRows(s.facilityIncome,'card')}<h4>ランドマークが稼いだコイン</h4>${resultIncomeRows(s.landmarkIncome,'landmark')}</section>`}).join('');
   const div=document.createElement('div');div.className='modal-backdrop';
   div.innerHTML=`<div class="modal result-modal"><div class="row"><h2 class="grow">${game.winnerId?'ゲームリザルト':'途中集計'}</h2><button class="btn" data-close>閉じる</button></div><div class="result-metrics top"><div><small>手番数</small><b>${game.turnNo}</b></div><div><small>通常ロール</small><b>${dice.rolls}</b></div><div><small>1個振り</small><b>${dice.oneDie}</b></div><div><small>2個振り</small><b>${dice.twoDice}</b></div><div><small>振り直し</small><b>${dice.rerolls}</b></div></div><section class="result-section"><h3>実際に振った通常ダイスの合計</h3>${distributionRows(dice.totals,1,12)}</section><section class="result-section"><h3>効果処理に使われた最終出目</h3><p class="hint">振り直し後・港の＋2適用後の出目です。</p>${distributionRows(stats.dice.resolvedTotals,1,14)}</section><section class="result-section"><h3>サイコロ各面の出現数</h3>${distributionRows(dice.faces,1,6)}</section>${extra.rolls?`<section class="result-section"><h3>追加ダイス（マグロ漁船）</h3><p>${extra.rolls}回</p>${distributionRows(extra.totals,2,12)}</section>`:''}<section class="result-section"><h3>BAN結果</h3><div class="ban-result-list">${bans.length?bans.map(x=>`<span>${esc(x)}</span>`).join(''):'<span>BANなし</span>'}</div></section><section class="result-section"><h3>プレイヤー別収支</h3><div class="result-player-grid">${playerSections}</div></section></div>`;
   document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
