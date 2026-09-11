@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.3.17</title>
+  <title>街コロ オンライン v1.3.18</title>
   <style>
 :root{
   color-scheme:light;
@@ -515,7 +515,6 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
   body:has(.game-layout) .topbar .brand small,
   body:has(.game-layout) .topbar .room-badge{display:none}
   body:has(.game-layout) .topbar>.row{gap:2px;flex-wrap:nowrap;margin-left:auto}
-  body:has(.game-layout) .topbar .game-common-links{gap:2px;flex-wrap:nowrap}
   body:has(.game-layout) .topbar .btn{
     min-width:30px;
     padding:4px 5px;
@@ -525,8 +524,6 @@ button,input,select{font:inherit} button{cursor:pointer} button:disabled{cursor:
     white-space:nowrap;
   }
   body:has(.game-layout) .topbar .btn::after{font-size:9px}
-  body:has(.game-layout) .topbar [data-cmd="home"]::after{content:"HOME"}
-  body:has(.game-layout) .topbar [data-cmd="play-records"]::after{content:"記録"}
   body:has(.game-layout) .topbar [data-cmd="logs"]::after{content:"ログ"}
   body:has(.game-layout) .topbar [data-cmd="results"]::after{content:"集計"}
   body:has(.game-layout) .topbar [data-cmd="ids"]::after{content:"一覧"}
@@ -1556,7 +1553,7 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .player-type-rolls.blue-rolls{bottom:4px!important}
 }
 
-/* ===== 共通オンラインボドゲ仕様 v1.3.17 ===== */
+/* ===== 共通オンラインボドゲ仕様 v1.3.18 ===== */
 .common-titlebar{
   display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
   padding:12px 16px;background:rgba(255,253,245,.97);border-bottom:1px solid var(--line);
@@ -1954,7 +1951,7 @@ const ACTIVE_ROOM_KEY='machikoro-online-room';
 const ACTIVE_NAME_KEY='machikoro-online-active-name';
 const NAME_DRAFT_KEY='machikoro-online-name-draft';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.17';
+const APP_VERSION='v1.3.18';
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -2119,7 +2116,7 @@ function renderLobby(){
   document.querySelectorAll('[data-remove-cpu]').forEach(button=>button.onclick=()=>lobbyAction('remove_cpu',{cpuId:button.dataset.removeCpu}));document.getElementById('addCpu')?.addEventListener('click',()=>lobbyAction('add_cpu'));document.getElementById('saveLobbySettings')?.addEventListener('click',()=>lobbyAction('settings',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('startOnlineGame')?.addEventListener('click',()=>lobbyAction('start',{initialBans:selectedInitialBans(),playerBanEnabled:document.getElementById('playerBanEnabled').checked}));document.getElementById('leaveRoom').onclick=leaveToRooms;bindCommon();
 }
 function banCheckHtml(item,selected=[]){const detail=item.rolls?.length?`出目 ${item.rolls.join('・')} / ${item.cost}コイン`:`ランドマーク / ${item.cost}コイン`;return`<label class="ban-check"><input type="checkbox" name="initialBan" value="${esc(item.id)}" ${selected.includes(item.id)?'checked':''}><span><b>${esc(item.name)}</b><small>${esc(detail)}</small></span></label>`}
-function onlineTopbar(showGameButtons=true){return`<header class="topbar"><div class="game-common-links"><button class="btn outline" data-cmd="home">HOME</button><button class="btn outline" data-cmd="play-records">プレイ記録</button></div><div class="brand">街コロ オンライン ${APP_VERSION}<small>新装版＋プラスシャープ / 固定4部屋</small></div><div class="row"><span class="room-badge">${esc(roomState?.roomName||'')}</span>${showGameButtons&&game?`<button class="btn outline mobile-log-button" data-cmd="logs">ログ</button><button class="btn outline" data-cmd="results">${game.winnerId?'リザルト':'途中集計'}</button><button class="btn outline" data-cmd="ids">カード一覧</button>`:''}${roomState?.isHost&&roomState.status!=='lobby'?'<button class="btn danger" data-cmd="reset">ロビーへ戻す</button>':''}<button class="btn outline" data-cmd="rooms">部屋一覧</button></div></header>`}
+function onlineTopbar(showGameButtons=true){return`<header class="topbar"><div class="brand">街コロ オンライン ${APP_VERSION}<small>新装版＋プラスシャープ / 固定4部屋</small></div><div class="row"><span class="room-badge">${esc(roomState?.roomName||'')}</span>${showGameButtons&&game?`<button class="btn outline mobile-log-button" data-cmd="logs">ログ</button><button class="btn outline" data-cmd="results">${game.winnerId?'リザルト':'途中集計'}</button><button class="btn outline" data-cmd="ids">カード一覧</button>`:''}${roomState?.isHost&&roomState.status!=='lobby'?'<button class="btn danger" data-cmd="reset">ロビーへ戻す</button>':''}<button class="btn outline" data-cmd="rooms">部屋一覧</button></div></header>`}
 function topbar(){return onlineTopbar(true)}
 function render(){if(!roomState)return renderRoomSelect();if(!game)return renderLobby();if(game.phase==='ban_pick')return renderBanPick();renderGame()}
 function bindCommon(){document.querySelector('[data-cmd="home"]')?.addEventListener('click',openCommonHome);document.querySelector('[data-cmd="play-records"]')?.addEventListener('click',openPlayRecords);document.querySelector('[data-cmd="logs"]')?.addEventListener('click',showGameLog);document.querySelector('[data-cmd="ids"]')?.addEventListener('click',showIds);document.querySelector('[data-cmd="results"]')?.addEventListener('click',showResults);document.querySelector('[data-cmd="reset"]')?.addEventListener('click',resetGame);document.querySelector('[data-cmd="rooms"]')?.addEventListener('click',leaveToRooms)}
