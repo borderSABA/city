@@ -1,28 +1,26 @@
-街コロ v1.3.22
+街コロ CPU解析管理認証 修正
 
 [CLIENT]
 index.html
-
-変更箇所:
-- ANALYSIS_HOST_ROOM_KEY
-  - 最後にホストだったROOMをlocalStorageへ保持
-- WebSocket state受信処理
-  - roomState.isHost=true のROOMを解析管理用ホストROOMとして保存
-- analysisAdminHeaders()
-  - x-room-id / x-player-token を解析管理APIへ付与
-- showAnalysisManager()
-  - サーバーJSON出力 / サーバーログ削除でROOMホストトークンを送信
+- APP_VERSION: v1.3.23
+- analysisAdminHeaders() を廃止
+- getAnalysisAdminPassword()/analysisPasswordHeaders() を追加
+- サーバーJSON出力／削除時にパスワード入力
+- x-analysis-password ヘッダーで送信
 
 [WORKER]
-Worker v1.2.7へ更新。
-- ROOMホストトークン認証を解析export/clearへ追加
-- 共通ホスト名確認はフォールバックとして維持
+src/index.js
+- APP_VERSION: 1.2.8
+- checkAnalysisAdmin() を廃止
+- checkAnalysisPassword() を追加
+- /analysis/export と /analysis/clear を ANALYSIS_EXPORT_PASSWORD Secret 認証へ変更
+- CORS に x-analysis-password を追加
 
-[UNCHANGED]
-- CPUロジック MACHIKORO_CPU_V2
-- CPU解析ログ形式 1
-- 相手選択時の街を見るUI
+2_SET_ANALYSIS_PASSWORD.bat
+- ANALYSIS_EXPORT_PASSWORD Secretを登録／変更
+
+変更していないもの
+- CPU v2思考ロジック
+- 通常ゲーム同期
+- /analysis/upload のROOMホスト認証
 - 既存Worker URL
-
-[VERSION]
-v1.3.21 -> v1.3.22
