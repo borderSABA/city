@@ -1982,8 +1982,8 @@ const ACTIVE_NAME_KEY='machikoro-online-active-name';
 const NAME_DRAFT_KEY='machikoro-online-name-draft';
 const ANALYSIS_HOST_ROOM_KEY='machikoro-analysis-host-room';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.23';
-const CPU_LOGIC_VERSION='MACHIKORO_CPU_V2';
+const APP_VERSION='v1.3.24';
+const CPU_LOGIC_VERSION='MACHIKORO_CPU_V3';
 const ANALYSIS_SCHEMA_VERSION=1;
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
@@ -2501,18 +2501,67 @@ function aiSynergyScore(card,p){let s=0;if(!card||!p)return 0;
   if(card.id==='general_store'&&aiCompletedLandmarks(p)>=3)s-=4;
   return s;
 }
+
+function aiOwnTurnsRemaining(p){
+  const players=Math.max(2,game?.players?.length||4);
+  const ownTurnsSoFar=Math.max(0,Math.floor(((game?.turnNo||1)-1)/players));
+  const done=aiCompletedLandmarks(p);
+  const baseline=Math.max(4,20-ownTurnsSoFar);
+  return Math.max(3,baseline-done*1.2);
+}
+function aiVictorySavingPressure(p){
+  const done=aiCompletedLandmarks(p);
+  const remaining=aiActiveLandmarks().filter(l=>!p.landmarks?.[l.id]);
+  if(!remaining.length)return 999;
+  const target=remaining.slice().sort((a,b)=>a.cost-b.cost)[0];
+  const gap=Math.max(0,target.cost-(p.coins||0));
+  if(done>=5)return 8+Math.max(0,6-gap*0.5);
+  if(done===4)return 4+Math.max(0,5-gap*0.5);
+  if(done===3)return Math.max(0,4-gap*0.5);
+  return 0;
+}
+function aiTechMarginalInvestmentValue(p){
+  if(!aiCount(p,'tech_startup'))return -999;
+  const opponents=Math.max(1,(game?.players?.length||1)-1);
+  const turns=aiOwnTurnsRemaining(p);
+  const dice=p.landmarks?.train_station?2:aiPreferredDiceCount(p);
+  const activation=aiRollProb(10,dice);
+  const gross=opponents*activation*turns;
+  let opportunity=1;
+  const savePressure=aiVictorySavingPressure(p);
+  if((p.coins||0)<=1)opportunity+=2.4;
+  else if((p.coins||0)<=3)opportunity+=1.1;
+  if(savePressure>=14)opportunity+=2.2;
+  else if(savePressure>=9)opportunity+=1.0;
+  return gross-opportunity;
+}
+function aiDiceStrategicBonus(p,diceCount){
+  if(diceCount!==2||!p.landmarks?.train_station)return 0;
+  let bonus=0;
+  if(aiCount(p,'tech_startup')){
+    const invested=Number(p.investments?.tech_startup||0);
+    bonus+=invested>0?Math.min(0.6,invested*0.08):0.1;
+  }
+  if(p.landmarks?.amusement_park)bonus+=0.15;
+  return bonus;
+}
+function aiOwnWorstExchangeValue(p){
+  const vals=(meta.cards||[]).filter(c=>c.type!=='purple'&&aiOpen(p,c.id)>0).map(c=>aiCardScoreDetailed(c.id,p).score);
+  return vals.length?Math.min(...vals):0;
+}
+
 function aiCardScoreDetailed(id,p){
   const c=aiCard(id);if(!c)return{score:-999,breakdown:{}};
   const expected=aiCardExpectedRoundValue(c,p);
   const synergy=aiSynergyScore(c,p);
   const done=aiCompletedLandmarks(p);
   const lateGamePenalty=done>=4?4+c.cost*0.2:done===3?1.2:0;
-  const duplicate=Math.max(0,aiCount(p,id)-1)*0.65;
-  const costPenalty=c.cost*0.72;
-  const redPressure=c.type==='red'?(game.players.length-1)*0.65:0;
-  const major=c.type==='purple'?2.2:0;
+  const duplicate=Math.max(0,aiCount(p,id)-1)*0.2;
+  const costPenalty=c.cost*0.65;
+  const redPressure=c.type==='red'?(game.players.length-1)*0.8:0;
+  const major=c.type==='purple'?4.0:0;
   const oneTime=id==='loan_office'?5:0;
-  const score=expected*4.2+synergy+redPressure+major+oneTime-costPenalty-duplicate-lateGamePenalty;
+  const score=expected*5.0+synergy+redPressure+major+oneTime-costPenalty-duplicate-lateGamePenalty;
   return{score,breakdown:{expectedRound:+expected.toFixed(3),synergy:+synergy.toFixed(2),redPressure:+redPressure.toFixed(2),major:+major.toFixed(2),oneTime:+oneTime.toFixed(2),lateGame:-lateGamePenalty,cost:-costPenalty,duplicate:-duplicate}};
 }
 function aiLandmarkValueDetailed(lm,p){
@@ -2525,8 +2574,8 @@ function aiLandmarkValueDetailed(lm,p){
   else if(lm.id==='amusement_park'){utility=8+(p.landmarks?.train_station?6:1)}
   else if(lm.id==='radio_tower'){utility=11+(done>=3?4:0)}
   else if(lm.id==='airport'){utility=7+(done>=4?7:0)}
-  const victory=(done+1)*5.5+(done>=4?12:0);
-  const cost=lm.cost*0.58;
+  const victory=(done+1)*6.0+(done>=4?14:0);
+  const cost=lm.cost*0.55;
   return{score:utility+victory-cost,breakdown:{utility:+utility.toFixed(2),victory:+victory.toFixed(2),cost:-cost}};
 }
 function aiRollOutcomeValue(sum,p){
@@ -2536,7 +2585,7 @@ function aiRollOutcomeValue(sum,p){
   return value;
 }
 function aiDiceModeValue(p,diceCount){let v=0;const min=diceCount===1?1:2,max=diceCount===1?6:12;for(let n=min;n<=max;n++)v+=aiRollProb(n,diceCount)*aiRollOutcomeValue(n,p);return v}
-function aiCompactState(g=game){if(!g)return null;return{turnNo:g.turnNo,phase:g.phase,currentPlayerId:g.currentPlayerId,pending:g.pending?{kind:g.pending.kind,playerId:g.pending.playerId}:null,lastRoll:g.lastRoll?{dice:[...(g.lastRoll.dice||[])],rawSum:g.lastRoll.rawSum,finalSum:g.lastRoll.finalSum}:null,market:{...g.market},activeLandmarkIds:[...(g.activeLandmarkIds||[])],bans:g.bans?{all:[...(g.bans.all||[])]}:null,players:(g.players||[]).map(p=>({id:p.id,name:p.name,isCpu:p.isCpu,coins:p.coins,city:{...p.city},closed:{...p.closed},landmarks:{...p.landmarks},investments:{...p.investments}}))}}
+function aiCompactState(g=game){if(!g)return null;return{turnNo:g.turnNo,phase:g.phase,currentPlayerId:g.currentPlayerId,pending:g.pending?{kind:g.pending.kind,playerId:g.pending.playerId,data:g.pending.data?{targetId:g.pending.data.targetId||null,cardId:g.pending.data.cardId||null,takeId:g.pending.data.takeId||null}:null}:null,lastRoll:g.lastRoll?{dice:[...(g.lastRoll.dice||[])],rawSum:g.lastRoll.rawSum,finalSum:g.lastRoll.finalSum}:null,market:{...g.market},activeLandmarkIds:[...(g.activeLandmarkIds||[])],bans:g.bans?{all:[...(g.bans.all||[])]}:null,players:(g.players||[]).map(p=>({id:p.id,name:p.name,isCpu:p.isCpu,coins:p.coins,city:{...p.city},closed:{...p.closed},landmarks:{...p.landmarks},investments:{...p.investments}}))}}
 function aiAvailableHumanActions(g,playerId){
   if(!g)return[];const p=g.players?.find(x=>x.id===playerId);if(!p)return[];
   if(g.phase==='ban_pick'&&g.banPick?.currentPlayerId===playerId)return[...(g.banPick.choices||[]).map(x=>`BAN:${x.id}`),'BAN:SKIP'];
@@ -2581,25 +2630,102 @@ function aiBanDecision(p){
   const choices=game.banPick?.choices||[];const candidates=choices.map(x=>{let self=0,opp=0;if(aiCard(x.id)){self=aiCardScoreDetailed(x.id,p).score;const others=game.players.filter(y=>y.id!==p.id);opp=others.reduce((n,y)=>n+aiCardScoreDetailed(x.id,y).score,0)/Math.max(1,others.length)}else{const lm=aiLandmark(x.id);self=lm?aiLandmarkValueDetailed(lm,p).score:0;const others=game.players.filter(y=>y.id!==p.id);opp=others.reduce((n,y)=>n+(lm?aiLandmarkValueDetailed(lm,y).score:0),0)/Math.max(1,others.length)}const score=opp-self*0.82;return{action:'ban_pick',payload:{itemId:x.id},label:`BAN ${x.name}`,score,breakdown:{opponentValue:+opp.toFixed(2),selfCost:+(-self*0.82).toFixed(2)}}});candidates.push({action:'ban_pick',payload:{skip:true},label:'BANしない',score:1.2,breakdown:{preservePool:1.2}});candidates.sort((a,b)=>b.score-a.score);return{decisionType:'ban',candidates,selected:candidates[0],reason:`相手への妨害価値－自分への損失が最大`}}
 function aiPendingDecision(p,q){
   const make=(type,cands,reason)=>{cands.sort((a,b)=>b.score-a.score);return{decisionType:type,candidates:cands,selected:cands[0],reason}};
-  if(q.kind==='invest'){const invested=Number(p.investments?.tech_startup||0),future=(game.players.length-1)*(invested+1)*aiRollProb(10,aiPreferredDiceCount(p))*4,liquidity=p.coins<=3?4:0;return make('invest',[{action:'invest',payload:{yes:true},label:'1コイン投資',score:future-liquidity,breakdown:{future:+future.toFixed(2),liquidity:-liquidity}},{action:'invest',payload:{yes:false},label:'投資しない',score:0}],'ITベンチャーの将来回収と手元資金を比較')}
-  if(q.kind==='reroll'){const current=aiRollOutcomeValue(game.lastRoll?.rawSum,p),dice=game.lastRoll?.diceCount||game.lastRoll?.dice?.length||1,avg=aiDiceModeValue(p,dice);return make('reroll',[{action:'reroll',payload:{yes:true},label:'振り直す',score:avg,breakdown:{expected:+avg.toFixed(3)}},{action:'reroll',payload:{yes:false},label:'そのまま',score:current,breakdown:{current:+current.toFixed(3)}}],'現在値と振り直し期待値を比較')}
-  if(q.kind==='harbor'){const base=aiRollOutcomeValue(game.lastRoll?.rawSum,p),plus=aiRollOutcomeValue((game.lastRoll?.rawSum||0)+2,p);return make('harbor',[{action:'harbor',payload:{yes:true},label:'+2する',score:plus},{action:'harbor',payload:{yes:false},label:'そのまま',score:base}],'+2前後の効果価値を比較')}
-  if(q.kind==='tv'){return make('tv',(q.choices||[]).map(x=>{const t=aiPlayer(x.id);return{action:'choice',payload:{value:x.id},label:`${t?.name||x.label}から5`,score:Math.min(5,t?.coins||0),breakdown:{collectable:Math.min(5,t?.coins||0),leaderPressure:aiCompletedLandmarks(t)*1.2}}}),'回収額と首位圧力を比較')}
-  if(q.kind==='business_target'){return make('business_target',[...(q.choices||[]).map(x=>{const t=aiPlayer(x.id);const best=(meta.cards||[]).filter(c=>aiCount(t,c.id)>0&&c.type!=='purple').map(c=>aiCardScoreDetailed(c.id,p).score).sort((a,b)=>b-a)[0]||0;return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:best+(aiCompletedLandmarks(t)*0.5)}}),...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])],'奪える施設価値が最大の相手')}
-  if(q.kind==='business_take')return make('business_take',[...(q.choices||[]).map(x=>{const d=aiCardScoreDetailed(x.id,p);return{action:'choice',payload:{value:x.id},label:x.label,score:d.score,breakdown:d.breakdown}}),...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])],'自分に最も価値が高い施設を受け取る')
-  if(q.kind==='business_give'||q.kind==='moving_card'){const cands=(q.choices||[]).map(x=>{const d=aiCardScoreDetailed(x.id,p);return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{giveAwayValue:-d.score}}});if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'交換しない',score:0});return make(q.kind,cands,'自分に最も価値が低い施設を手放す')}
-  if(q.kind==='renovation'){return make('renovation',(q.choices||[]).map(x=>{const own=aiOpen(p,x.id),opp=game.players.filter(y=>y.id!==p.id).reduce((n,y)=>n+aiOpen(y,x.id),0);return{action:'choice',payload:{value:x.id},label:x.label,score:opp*2-own*2.4,breakdown:{opponents:opp*2,self:-own*2.4}}}),'相手の営業施設を多く止め、自分の損失を抑える')}
-  if(q.kind==='demolition'){return make('demolition',(q.choices||[]).map(x=>{const lm=aiLandmark(x.id),d=lm?aiLandmarkValueDetailed(lm,p):{score:0};return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{lostLandmarkValue:-d.score}}}),'戻した時の戦略損失が最小のランドマーク')}
-  if(q.kind==='moving_target'){const cardId=q.data?.cardId;return make('moving_target',(q.choices||[]).map(x=>{const t=aiPlayer(x.id),gain=cardId?aiCardScoreDetailed(cardId,t).score:0;return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:-gain-aiCompletedLandmarks(t)*0.8,breakdown:{opponentGain:-gain,leaderPenalty:-aiCompletedLandmarks(t)*0.8}}}),'渡した施設を活かしにくい相手を選択')}
-  const cands=(q.choices||[]).map(x=>({action:'choice',payload:{value:x.id},label:x.label||x.id,score:1}));if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'選ばない',score:0});return make(q.kind||'choice',cands,'選択可能候補から決定')
+  if(q.kind==='invest'){
+    const value=aiTechMarginalInvestmentValue(p);
+    return make('invest',[
+      {action:'invest',payload:{yes:true},label:'1コイン投資',score:value,breakdown:{net:+value.toFixed(2)}},
+      {action:'invest',payload:{yes:false},label:'投資しない',score:0}
+    ],'残り手番で増えるITベンチャー収益と勝利用資金を比較');
+  }
+  if(q.kind==='reroll'){
+    const current=aiRollOutcomeValue(game.lastRoll?.rawSum,p),dice=game.lastRoll?.diceCount||game.lastRoll?.dice?.length||1,avg=aiDiceModeValue(p,dice);
+    return make('reroll',[
+      {action:'reroll',payload:{yes:true},label:'振り直す',score:avg,breakdown:{expected:+avg.toFixed(3)}},
+      {action:'reroll',payload:{yes:false},label:'そのまま',score:current,breakdown:{current:+current.toFixed(3)}}
+    ],'現在値と振り直し期待値を比較');
+  }
+  if(q.kind==='harbor'){
+    const base=aiRollOutcomeValue(game.lastRoll?.rawSum,p),plus=aiRollOutcomeValue((game.lastRoll?.rawSum||0)+2,p);
+    return make('harbor',[
+      {action:'harbor',payload:{yes:true},label:'+2する',score:plus},
+      {action:'harbor',payload:{yes:false},label:'そのまま',score:base}
+    ],'+2前後の効果価値を比較');
+  }
+  if(q.kind==='tv'){
+    return make('tv',(q.choices||[]).map(x=>{
+      const t=aiPlayer(x.id),collectable=Math.min(5,t?.coins||0);
+      const leaderPressure=aiCompletedLandmarks(t)*1.1+Math.min(1.5,(t?.coins||0)*0.05);
+      return{action:'choice',payload:{value:x.id},label:`${t?.name||x.label}から5`,score:collectable+leaderPressure,breakdown:{collectable,leaderPressure:+leaderPressure.toFixed(2)}};
+    }),'回収額に加え、勝利に近い相手を優先');
+  }
+  if(q.kind==='business_target'){
+    const ownWorst=aiOwnWorstExchangeValue(p);
+    return make('business_target',[
+      ...(q.choices||[]).map(x=>{
+        const t=aiPlayer(x.id);
+        const targetCards=(meta.cards||[]).filter(c=>aiOpen(t,c.id)>0&&c.type!=='purple');
+        let bestSelf=0,bestDeny=0;
+        for(const c of targetCards){
+          bestSelf=Math.max(bestSelf,aiCardScoreDetailed(c.id,p).score);
+          bestDeny=Math.max(bestDeny,aiCardScoreDetailed(c.id,t).score);
+        }
+        const leaderPressure=aiCompletedLandmarks(t)*1.2+Math.min(1.5,(t?.coins||0)*0.06);
+        const net=Math.max(0,bestSelf-ownWorst)+Math.max(0,bestDeny)*0.25+leaderPressure;
+        return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:net,breakdown:{gain:+bestSelf.toFixed(2),giveCost:+(-ownWorst).toFixed(2),denial:+(Math.max(0,bestDeny)*0.25).toFixed(2),leaderPressure:+leaderPressure.toFixed(2)}};
+      }),
+      ...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])
+    ],'交換後の純利益と相手の戦力低下が最大の相手');
+  }
+  if(q.kind==='business_take'){
+    const target=aiPlayer(q.data?.targetId);
+    return make('business_take',[
+      ...(q.choices||[]).map(x=>{
+        const d=aiCardScoreDetailed(x.id,p);
+        const deny=target?Math.max(0,aiCardScoreDetailed(x.id,target).score)*0.22:0;
+        return{action:'choice',payload:{value:x.id},label:x.label,score:d.score+deny,breakdown:{...d.breakdown,denial:+deny.toFixed(2)}};
+      }),
+      ...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])
+    ],'自分の獲得価値と相手から奪う価値を合算');
+  }
+  if(q.kind==='business_give'||q.kind==='moving_card'){
+    const cands=(q.choices||[]).map(x=>{const d=aiCardScoreDetailed(x.id,p);return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{giveAwayValue:-d.score}}});
+    if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'交換しない',score:0});
+    return make(q.kind,cands,'自分に最も価値が低い施設を手放す');
+  }
+  if(q.kind==='renovation'){
+    return make('renovation',(q.choices||[]).map(x=>{const own=aiOpen(p,x.id),opp=game.players.filter(y=>y.id!==p.id).reduce((n,y)=>n+aiOpen(y,x.id),0);return{action:'choice',payload:{value:x.id},label:x.label,score:opp*2-own*2.4,breakdown:{opponents:opp*2,self:-own*2.4}}}),'相手の営業施設を多く止め、自分の損失を抑える');
+  }
+  if(q.kind==='demolition'){
+    return make('demolition',(q.choices||[]).map(x=>{const lm=aiLandmark(x.id),d=lm?aiLandmarkValueDetailed(lm,p):{score:0};return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{lostLandmarkValue:-d.score}}}),'戻した時の戦略損失が最小のランドマーク');
+  }
+  if(q.kind==='moving_target'){
+    const cardId=q.data?.cardId;
+    return make('moving_target',(q.choices||[]).map(x=>{const t=aiPlayer(x.id),gain=cardId?aiCardScoreDetailed(cardId,t).score:0;return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:-gain-aiCompletedLandmarks(t)*1.2-Math.min(1.2,(t?.coins||0)*0.05),breakdown:{opponentGain:-gain,leaderPenalty:-aiCompletedLandmarks(t)*1.2}}}),'渡した施設を活かしにくく、勝利から遠い相手を選択');
+  }
+  const cands=(q.choices||[]).map(x=>({action:'choice',payload:{value:x.id},label:x.label||x.id,score:1}));
+  if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'選ばない',score:0});
+  return make(q.kind||'choice',cands,'選択可能候補から決定');
 }
 function aiDecision(){
   const p=aiPlayer(game?.currentPlayerId);if(!p?.isCpu)return null;
   if(game.phase==='ban_pick')return aiBanDecision(p);
   if(game.pending)return aiPendingDecision(p,game.pending);
-  if(game.phase==='roll'){const one=aiDiceModeValue(p,1),two=p.landmarks?.train_station?aiDiceModeValue(p,2):-999;const c=[{action:'roll',payload:{diceCount:1},label:'1個振る',score:one,breakdown:{expected:+one.toFixed(3)}}];if(p.landmarks?.train_station)c.push({action:'roll',payload:{diceCount:2},label:'2個振る',score:two,breakdown:{expected:+two.toFixed(3)}});c.sort((a,b)=>b.score-a.score);return{decisionType:'dice_count',candidates:c,selected:c[0],reason:'現在の街に対する期待値が高いダイス数'}}
+  if(game.phase==='roll'){
+    const one=aiDiceModeValue(p,1),two=p.landmarks?.train_station?aiDiceModeValue(p,2):-999;
+    const c=[{action:'roll',payload:{diceCount:1},label:'1個振る',score:one,breakdown:{expected:+one.toFixed(3)}}];
+    if(p.landmarks?.train_station)c.push({action:'roll',payload:{diceCount:2},label:'2個振る',score:two,breakdown:{expected:+two.toFixed(3)}});
+    c.sort((a,b)=>b.score-a.score);
+    return{decisionType:'dice_count',candidates:c,selected:c[0],reason:'自分の収入・赤施設への支払い・高目戦略を含む期待値が高いダイス数'};
+  }
   if(game.phase==='build')return aiBuildDecision(p);
-  if(game.phase==='invest'){const invested=Number(p.investments?.tech_startup||0),future=(game.players.length-1)*(invested+1)*aiRollProb(10,aiPreferredDiceCount(p))*4;const liquidity=p.coins<=3?4:0;const yes=future-liquidity;const c=[{action:'invest',payload:{yes:true},label:'1コイン投資',score:yes,breakdown:{future:+future.toFixed(2),liquidity:-liquidity}},{action:'invest',payload:{yes:false},label:'投資しない',score:0}].sort((a,b)=>b.score-a.score);return{decisionType:'invest',candidates:c,selected:c[0],reason:'ITベンチャーの将来回収と手元資金を比較'}}
+  if(game.phase==='invest'){
+    const value=aiTechMarginalInvestmentValue(p);
+    const c=[
+      {action:'invest',payload:{yes:true},label:'1コイン投資',score:value,breakdown:{net:+value.toFixed(2)}},
+      {action:'invest',payload:{yes:false},label:'投資しない',score:0}
+    ].sort((a,b)=>b.score-a.score);
+    return{decisionType:'invest',candidates:c,selected:c[0],reason:'残り手番で増えるITベンチャー収益と勝利用資金を比較'};
+  }
   return null;
 }
 function cpuStateSignature(){if(!game||!roomState)return'';return[roomState.gameSessionId,roomState.revision,game.turnNo,game.phase,game.currentPlayerId,game.pending?.kind||'',game.lastRoll?.rawSum??'',Object.keys(game.market||{}).join(',')].join('|')}

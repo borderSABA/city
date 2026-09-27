@@ -1,26 +1,51 @@
-街コロ CPU解析管理認証 修正
+街コロ CPU v3 強化
 
 [CLIENT]
 index.html
-- APP_VERSION: v1.3.23
-- analysisAdminHeaders() を廃止
-- getAnalysisAdminPassword()/analysisPasswordHeaders() を追加
-- サーバーJSON出力／削除時にパスワード入力
-- x-analysis-password ヘッダーで送信
+- APP_VERSION: v1.3.24
+- CPU_LOGIC_VERSION: MACHIKORO_CPU_V3
+- aiCardScoreDetailed()
+  - 期待収入係数 4.2 → 5.0
+  - 建設コスト係数 0.72 → 0.65
+  - 重複ペナルティ 0.65 → 0.20
+  - 赤施設の対人圧力 0.65 → 0.80
+  - 紫施設ボーナス 2.2 → 4.0
+- aiLandmarkValueDetailed()
+  - ランドマーク勝利進行係数を強化
+- aiTechMarginalInvestmentValue()
+  - ITベンチャー投資を残り手番期待値で判断
+- aiPendingDecision()
+  - テレビ局：回収額＋勝利に近い相手
+  - ビジネスセンター：交換純利益＋妨害価値
+  - 引っ越し屋：相手の活用価値・勝利進行を考慮
+- aiCompactState()
+  - pending.data の targetId / cardId / takeId を解析ログへ追加
+- 解析ログ管理パスワード方式はv1.3.23を維持
 
 [WORKER]
-src/index.js
-- APP_VERSION: 1.2.8
-- checkAnalysisAdmin() を廃止
-- checkAnalysisPassword() を追加
-- /analysis/export と /analysis/clear を ANALYSIS_EXPORT_PASSWORD Secret 認証へ変更
-- CORS に x-analysis-password を追加
+src/game.js
+- getState().pending.data に以下の安全な判断文脈を追加
+  - targetId
+  - cardId
+  - takeId
 
-2_SET_ANALYSIS_PASSWORD.bat
-- ANALYSIS_EXPORT_PASSWORD Secretを登録／変更
+src/index.js
+- APP_VERSION: 1.2.9
+- CPU_LOGIC_VERSION: MACHIKORO_CPU_V3
 
 変更していないもの
-- CPU v2思考ロジック
-- 通常ゲーム同期
-- /analysis/upload のROOMホスト認証
 - 既存Worker URL
+- ゲームルール
+- ダイス処理
+- 市場生成
+- 解析ログ保存API
+- 解析ログ管理パスワード方式
+- ROOM構造
+
+[VALIDATION]
+- Frontend JavaScript syntax: OK
+- Worker JavaScript syntax: OK
+- CPU v2×2 vs CPU v3×2 500戦:
+  - v3 290勝
+  - v2 210勝
+  - エラー0
