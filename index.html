@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#33835e">
-  <title>街コロ オンライン v1.3.18</title>
+  <title>街コロ オンライン v1.3.20</title>
   <style>
 :root{
   color-scheme:light;
@@ -1553,13 +1553,12 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .player-type-rolls.blue-rolls{bottom:4px!important}
 }
 
-/* ===== 共通オンラインボドゲ仕様 v1.3.18 ===== */
+/* ===== 共通オンラインボドゲ仕様 v1.3.19 ===== */
 .common-titlebar{
   display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
   padding:12px 16px;background:rgba(255,253,245,.97);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:30;
 }
-.common-titlebar-left{display:flex;gap:8px;justify-self:start}
 .common-titlebar-center{text-align:center;font-weight:900;font-size:clamp(22px,3vw,34px)}
 .common-titlebar-version{justify-self:end;font-weight:900;color:var(--muted)}
 .online-home{max-width:1320px;margin:18px auto;padding:20px}
@@ -1571,11 +1570,9 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
 .room-card .room-reset{margin-top:2px}
 .game-common-links{display:flex;gap:7px;flex-wrap:wrap}
 @media(max-width:700px){
-  .common-titlebar{grid-template-columns:1fr auto;grid-template-areas:"left version" "title title";padding:8px}
-  .common-titlebar-left{grid-area:left}
-  .common-titlebar-center{grid-area:title;font-size:22px}
-  .common-titlebar-version{grid-area:version}
-  .common-titlebar-left .btn{padding:7px 9px;font-size:12px}
+  .common-titlebar{grid-template-columns:1fr auto 1fr;padding:8px}
+  .common-titlebar-center{grid-column:2;font-size:22px}
+  .common-titlebar-version{grid-column:3}
   .online-home{margin:0;border-radius:0;padding:10px}
   .online-home .room-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .room-card{padding:10px}
@@ -1733,6 +1730,16 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
   .player-roll-entry{padding:4px 6px;font-size:11px}
   .player-roll-entry .roll-dice{font-size:13px}
 }
+
+/* v1.3.20 CPU v2 / 解析ログ */
+.analysis-title-actions{justify-content:center;margin-top:10px}
+.analysis-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.analysis-summary-grid>div{background:#f3f5f4;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.analysis-summary-grid small{display:block;color:var(--muted);font-size:10px}.analysis-summary-grid b{font-size:20px}
+.analysis-note{font-size:12px;line-height:1.7;color:var(--muted);background:#f6f8f7;border-radius:10px;padding:10px;margin:10px 0}
+.analysis-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.analysis-status{font-size:12px;margin-top:8px;color:var(--muted)}
+@media(max-width:640px){.analysis-summary-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 
 </head>
@@ -1745,7 +1752,8 @@ body:has(.game-layout) .board{min-height:0;overflow:hidden!important}
 const app=document.getElementById('app');
 const toastBox=document.getElementById('toast');
 let meta=null,imageMap={},game=null,roomState=null,rooms=[],ws=null,busy=false;
-let currentRoomId=null,currentName='',intentionalClose=false,reconnectTimer=null,roomTimer=null,pingTimer=null;
+let currentRoomId=null,currentName='',intentionalClose=false,reconnectTimer=null,roomTimer=null,pingTimer=null,hostCpuTimer=null;
+let lastCpuStateSignature='',lastAnalysisEventSeq=0,analysisCurrent=null,analysisFinalizing=false;
 
 let logFollowLatest=true,logScrollTop=0,logScrollHeight=0;
 let visualInitialized=false,lastVisualLogSeq=0;
@@ -1951,7 +1959,9 @@ const ACTIVE_ROOM_KEY='machikoro-online-room';
 const ACTIVE_NAME_KEY='machikoro-online-active-name';
 const NAME_DRAFT_KEY='machikoro-online-name-draft';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.18';
+const APP_VERSION='v1.3.20';
+const CPU_LOGIC_VERSION='MACHIKORO_CPU_V2';
+const ANALYSIS_SCHEMA_VERSION=1;
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -1975,7 +1985,7 @@ function saveCommonNameOnActualStart(){
   const name=String(currentName||'').trim().slice(0,18);
   if(name)localStorage.setItem(COMMON_PLAYER_NAME_KEY,name);
 }
-function clearNetTimers(){if(reconnectTimer)clearTimeout(reconnectTimer);if(roomTimer)clearTimeout(roomTimer);if(pingTimer)clearInterval(pingTimer);reconnectTimer=roomTimer=pingTimer=null}
+function clearNetTimers(){if(reconnectTimer)clearTimeout(reconnectTimer);if(roomTimer)clearTimeout(roomTimer);if(pingTimer)clearInterval(pingTimer);if(hostCpuTimer)clearTimeout(hostCpuTimer);reconnectTimer=roomTimer=pingTimer=hostCpuTimer=null}
 async function fetchRooms(){
   if(!workerConfigured())return [];
   const res=await fetch(`${WORKER_ORIGIN}/rooms`,{cache:'no-store'});
@@ -2010,7 +2020,7 @@ function renderRoomSelect(){
   }).join('');
   app.innerHTML=`<div class="shell">
     <header class="common-titlebar">
-      <div class="common-titlebar-left"><button class="btn outline" data-common-home>HOME</button><button class="btn outline" data-common-records>プレイ記録</button></div>
+      <div aria-hidden="true"></div>
       <div class="common-titlebar-center">街コロ オンライン</div>
       <div class="common-titlebar-version">${APP_VERSION}</div>
     </header>
@@ -2018,11 +2028,9 @@ function renderRoomSelect(){
       ${workerConfigured()?'':`<div class="server-warning"><b>Worker URLが未設定です。</b></div>`}
       <div class="field room-name-field"><label>プレイヤー名</label><input id="roomPlayerName" maxlength="18" value="${esc(nameDraft)}" placeholder="名前を入力"></div>
       <div class="room-grid">${roomCards}</div>
-      <button class="btn outline" id="refreshRooms">部屋情報を更新</button>
+      <div class="row analysis-title-actions"><button class="btn outline" id="refreshRooms">部屋情報を更新</button><button class="btn outline" id="analysisManager">CPU解析ログ</button></div>
     </section></main>
   </div>`;
-  document.querySelector('[data-common-home]')?.addEventListener('click',openCommonHome);
-  document.querySelector('[data-common-records]')?.addEventListener('click',openPlayRecords);
   const nameInput=document.getElementById('roomPlayerName');
   nameInput?.addEventListener('input',e=>sessionStorage.setItem(NAME_DRAFT_KEY,e.target.value));
   if(restoreNameFocus&&nameInput){nameInput.focus();try{nameInput.setSelectionRange(caretStart,caretEnd)}catch{}}
@@ -2032,7 +2040,7 @@ function renderRoomSelect(){
     connectRoom(button.dataset.joinRoom,name);
   });
   document.querySelectorAll('[data-reset-empty]').forEach(button=>button.onclick=()=>resetEmptyRoom(button.dataset.resetEmpty));
-  document.getElementById('refreshRooms').onclick=loadRooms;
+  document.getElementById('refreshRooms').onclick=loadRooms;document.getElementById('analysisManager').onclick=showAnalysisManager;
 }
 async function resetEmptyRoom(roomId){const num=ROOM_IDS.indexOf(roomId)+1;if(!confirm(`ROOM ${num} を初期化しますか？\nこのROOMだけがリセットされます。`))return;try{const res=await fetch(`${WORKER_ORIGIN}/rooms/${roomId}/reset-empty`,{method:'POST'});const data=await res.json();if(!res.ok)throw new Error(data.error||'リセットできません。');await loadRooms()}catch(err){showToast(err.message)}}
 async function connectRoom(roomId,name,isReconnect=false){
@@ -2061,6 +2069,7 @@ async function connectRoom(roomId,name,isReconnect=false){
   ws.onmessage=event=>{
     let data;try{data=JSON.parse(event.data)}catch{return}
     if(data.type==='error'){showToast(data.error||'操作エラーです。');return}
+    const previousGame=game?structuredClone(game):null;
     if(data.type==='left'){
       intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();
       sessionStorage.removeItem(ACTIVE_ROOM_KEY);sessionStorage.removeItem(ACTIVE_NAME_KEY);
@@ -2070,14 +2079,16 @@ async function connectRoom(roomId,name,isReconnect=false){
     if(data.type==='welcome'&&data.meta)meta=data.meta;
     if(data.room)roomState=data.room;
     if('game' in data){
-      const previousGame=game;game=data.game;
+      game=data.game;
       if(!previousGame&&game){resetEffectAnimations();saveCommonNameOnActualStart()}
       if(game){queueNewVisuals(game);queueTurnAnnouncement(game)}
+      analysisOnSnapshot(previousGame,game);
     }
     if(meta&&roomState){
       if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}
       else renderLobby()
     }
+    scheduleHostCpuFromState();
   };
   ws.onclose=()=>{
     if(pingTimer)clearInterval(pingTimer);pingTimer=null;
@@ -2343,6 +2354,224 @@ function showResults(){
   const div=document.createElement('div');div.className='modal-backdrop';
   div.innerHTML=`<div class="modal result-modal"><div class="row"><h2 class="grow">${game.winnerId?'ゲームリザルト':'途中集計'}</h2><button class="btn" data-close>閉じる</button></div><div class="result-metrics top"><div><small>手番数</small><b>${game.turnNo}</b></div><div><small>通常ロール</small><b>${dice.rolls}</b></div><div><small>1個振り</small><b>${dice.oneDie}</b></div><div><small>2個振り</small><b>${dice.twoDice}</b></div><div><small>振り直し</small><b>${dice.rerolls}</b></div></div><section class="result-section"><h3>実際に振った通常ダイスの合計</h3>${distributionRows(dice.totals,1,12)}</section><section class="result-section"><h3>効果処理に使われた最終出目</h3><p class="hint">振り直し後・港の＋2適用後の出目です。</p>${distributionRows(stats.dice.resolvedTotals,1,14)}</section><section class="result-section"><h3>サイコロ各面の出現数</h3>${distributionRows(dice.faces,1,6)}</section>${extra.rolls?`<section class="result-section"><h3>追加ダイス（マグロ漁船）</h3><p>${extra.rolls}回</p>${distributionRows(extra.totals,2,12)}</section>`:''}<section class="result-section"><h3>BAN結果</h3><div class="ban-result-list">${bans.length?bans.map(x=>`<span>${esc(x)}</span>`).join(''):'<span>BANなし</span>'}</div></section><section class="result-section"><h3>プレイヤー別収支</h3><div class="result-player-grid">${playerSections}</div></section></div>`;
   document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
+}
+
+
+// ================================================================
+// v1.3.20 CPU v2 + CPU/Human analysis logging (host browser)
+// ================================================================
+const ANALYSIS_DB_NAME='machikoro-cpu-analysis';
+const ANALYSIS_DB_VERSION=1;
+const ANALYSIS_STORE='games';
+const CPU_STEP_DELAY_MS=520;
+const CPU_TURN_DELAY_MS=3200;
+
+function analysisDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(ANALYSIS_DB_NAME,ANALYSIS_DB_VERSION);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ANALYSIS_STORE))db.createObjectStore(ANALYSIS_STORE,{keyPath:'gameSessionId'})};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+}
+async function analysisPut(record){
+  if(!record?.gameSessionId)return;
+  const db=await analysisDb();
+  await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readwrite');tx.objectStore(ANALYSIS_STORE).put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  db.close();
+}
+async function analysisGetAll(){
+  const db=await analysisDb();
+  const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readonly');const req=tx.objectStore(ANALYSIS_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+  db.close();return rows;
+}
+async function analysisDeleteAllLocal(){
+  const db=await analysisDb();
+  await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readwrite');tx.objectStore(ANALYSIS_STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  db.close();
+}
+function downloadJson(filename,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function aiCount(p,id){return Number(p?.city?.[id]||0)}
+function aiClosed(p,id){return Number(p?.closed?.[id]||0)}
+function aiOpen(p,id){return Math.max(0,aiCount(p,id)-aiClosed(p,id))}
+function aiCompletedLandmarks(p){return Object.values(p?.landmarks||{}).filter(Boolean).length}
+function aiActiveLandmarks(){return (meta?.landmarks||[]).filter(l=>game?.activeLandmarkIds?.includes(l.id))}
+function aiPlayer(id){return game?.players?.find(p=>p.id===id)||null}
+function aiCard(id){return byId(meta?.cards||[],id)}
+function aiLandmark(id){return byId(meta?.landmarks||[],id)}
+function aiRollProb(sum,diceCount){if(diceCount===1)return sum>=1&&sum<=6?1/6:0;if(sum<2||sum>12)return 0;return (6-Math.abs(7-sum))/36}
+function aiPreferredDiceCount(p){if(!p?.landmarks?.train_station)return 1;const one=aiDiceModeValue(p,1),two=aiDiceModeValue(p,2);return two>one?2:1}
+function aiMall(p){return p?.landmarks?.shopping_mall?1:0}
+function aiFoodCount(p){return (meta?.cards||[]).filter(c=>c.icon==='cup'||c.icon==='bread').reduce((n,c)=>n+aiOpen(p,c.id),0)}
+function aiWheatCount(p){return (meta?.cards||[]).filter(c=>c.icon==='wheat').reduce((n,c)=>n+aiOpen(p,c.id),0)}
+function aiRedCount(p){return (meta?.cards||[]).filter(c=>c.type==='red').reduce((n,c)=>n+aiOpen(p,c.id),0)}
+function aiPayout(card,p,active=null){
+  if(!card||!p)return 0;const mall=aiMall(p);
+  switch(card.effect){
+    case'wheat':case'ranch':case'forest':case'flower_garden':return 1;
+    case'mine':return 5;case'apple':return 3;case'vineyard':return 2;
+    case'bakery':return 1+mall;case'convenience':return 3+mall;
+    case'general_store':return aiCompletedLandmarks(p)<=2?2+mall:0;
+    case'corn':return aiCompletedLandmarks(p)<=2?1:0;
+    case'cheese':return 3*aiCount(p,'ranch');
+    case'furniture':return 3*(aiCount(p,'forest')+aiCount(p,'mine'));
+    case'produce':return 2*aiWheatCount(p);
+    case'flower_shop':return aiCount(p,'flower_garden')+mall;
+    case'food_warehouse':return 2*aiRedCount(p);
+    case'drink_factory':return (game?.players||[]).reduce((n,x)=>n+aiRedCount(x),0);
+    case'winery':return 6*aiCount(p,'vineyard');
+    case'loan':return -2;
+    case'cafe':return 1+mall;case'family_restaurant':return 2+mall;case'pizza':return 1+mall;case'burger':return 2+mall;
+    case'sushi':return p.landmarks?.harbor?3+mall:0;
+    case'french':return active&&aiCompletedLandmarks(active)>=3?4+mall:0;
+    case'members_bar':return active&&aiCompletedLandmarks(active)>=3?Math.max(4,active.coins):0;
+    case'mackerel':return p.landmarks?.harbor?3:0;case'tuna':return p.landmarks?.harbor?7:0;
+    case'stadium':return 2*Math.max(0,(game?.players?.length||1)-1);
+    case'tv':return Math.min(5,Math.max(0,...(game?.players||[]).filter(x=>x.id!==p.id).map(x=>x.coins)));
+    case'publisher':return (game?.players||[]).filter(x=>x.id!==p.id).reduce((n,x)=>n+aiFoodCount(x),0);
+    case'tax':return (game?.players||[]).filter(x=>x.id!==p.id&&x.coins>=10).reduce((n,x)=>n+Math.floor(x.coins/2),0);
+    case'tech':return Number(p.investments?.tech_startup||0)*Math.max(0,(game?.players?.length||1)-1);
+    case'park':{const all=game?.players||[];const avg=all.reduce((n,x)=>n+x.coins,0)/Math.max(1,all.length);return avg-p.coins}
+    case'business':return 3;case'renovation_company':return 2.5;case'demolition':return 2;case'moving':return 4;
+    default:return 1;
+  }
+}
+function aiCardExpectedRoundValue(card,owner){
+  if(!card||!owner)return 0;const ownDice=aiPreferredDiceCount(owner);let ev=0;
+  if(card.type==='green'||card.type==='purple'){
+    const payout=aiPayout(card,owner);for(const r of card.rolls||[])ev+=aiRollProb(r,ownDice)*payout;
+  }else if(card.type==='blue'){
+    for(const roller of game.players){const dice=aiPreferredDiceCount(roller);for(const r of card.rolls||[])ev+=aiRollProb(r,dice)*aiPayout(card,owner,roller)}
+  }else if(card.type==='red'){
+    for(const roller of game.players){if(roller.id===owner.id)continue;const dice=aiPreferredDiceCount(roller);for(const r of card.rolls||[])ev+=aiRollProb(r,dice)*aiPayout(card,owner,roller)}
+  }
+  return ev;
+}
+function aiSynergyScore(card,p){let s=0;if(!card||!p)return 0;
+  if(card.id==='ranch')s+=aiCount(p,'cheese_factory')*4;
+  if(card.id==='cheese_factory')s+=aiCount(p,'ranch')*3.2;
+  if(card.id==='forest'||card.id==='mine')s+=aiCount(p,'furniture_factory')*3.2;
+  if(card.id==='furniture_factory')s+=(aiCount(p,'forest')+aiCount(p,'mine'))*2.7;
+  if(card.id==='vineyard')s+=aiCount(p,'winery')*5;
+  if(card.id==='winery')s+=aiCount(p,'vineyard')*4.3;
+  if(card.id==='flower_garden')s+=aiCount(p,'flower_shop')*3;
+  if(card.id==='flower_shop')s+=aiCount(p,'flower_garden')*2.5;
+  if(card.icon==='bread'||card.icon==='cup')s+=p.landmarks?.shopping_mall?2.4:0;
+  if(['sushi_bar','mackerel_boat','tuna_boat'].includes(card.id))s+=p.landmarks?.harbor?4:-1.5;
+  if((card.rolls||[]).some(r=>r>=7))s+=p.landmarks?.train_station?2.4:-1.2;
+  if(card.id==='produce_market')s+=aiWheatCount(p)*0.7;
+  if(card.id==='food_warehouse')s+=aiRedCount(p)*0.8;
+  if(card.id==='tech_startup')s+=3;
+  if(card.id==='general_store'&&aiCompletedLandmarks(p)>=3)s-=4;
+  return s;
+}
+function aiCardScoreDetailed(id,p){
+  const c=aiCard(id);if(!c)return{score:-999,breakdown:{}};
+  const expected=aiCardExpectedRoundValue(c,p);
+  const synergy=aiSynergyScore(c,p);
+  const done=aiCompletedLandmarks(p);
+  const lateGamePenalty=done>=4?4+c.cost*0.2:done===3?1.2:0;
+  const duplicate=Math.max(0,aiCount(p,id)-1)*0.65;
+  const costPenalty=c.cost*0.72;
+  const redPressure=c.type==='red'?(game.players.length-1)*0.65:0;
+  const major=c.type==='purple'?2.2:0;
+  const oneTime=id==='loan_office'?5:0;
+  const score=expected*4.2+synergy+redPressure+major+oneTime-costPenalty-duplicate-lateGamePenalty;
+  return{score,breakdown:{expectedRound:+expected.toFixed(3),synergy:+synergy.toFixed(2),redPressure:+redPressure.toFixed(2),major:+major.toFixed(2),oneTime:+oneTime.toFixed(2),lateGame:-lateGamePenalty,cost:-costPenalty,duplicate:-duplicate}};
+}
+function aiLandmarkValueDetailed(lm,p){
+  const done=aiCompletedLandmarks(p),remaining=aiActiveLandmarks().filter(x=>!p.landmarks?.[x.id]);
+  if(remaining.length===1&&remaining[0].id===lm.id)return{score:1000,breakdown:{victory:1000}};
+  let utility=0;
+  if(lm.id==='train_station'){const high=(meta.cards||[]).filter(c=>(c.rolls||[]).some(r=>r>=7)).reduce((n,c)=>n+aiCount(p,c.id),0);utility=14+high*2.5}
+  else if(lm.id==='shopping_mall'){utility=9+aiFoodCount(p)*2.1}
+  else if(lm.id==='harbor'){utility=7+(aiCount(p,'sushi_bar')+aiCount(p,'mackerel_boat')+aiCount(p,'tuna_boat'))*3.3}
+  else if(lm.id==='amusement_park'){utility=8+(p.landmarks?.train_station?6:1)}
+  else if(lm.id==='radio_tower'){utility=11+(done>=3?4:0)}
+  else if(lm.id==='airport'){utility=7+(done>=4?7:0)}
+  const victory=(done+1)*5.5+(done>=4?12:0);
+  const cost=lm.cost*0.58;
+  return{score:utility+victory-cost,breakdown:{utility:+utility.toFixed(2),victory:+victory.toFixed(2),cost:-cost}};
+}
+function aiRollOutcomeValue(sum,p){
+  let value=0;
+  for(const c of meta.cards||[]){if(!(c.rolls||[]).includes(sum))continue;const own=aiOpen(p,c.id);if(own&&(c.type==='blue'||c.type==='green'||c.type==='purple'))value+=aiPayout(c,p)*own}
+  for(const opp of game.players){if(opp.id===p.id)continue;for(const c of meta.cards||[]){if(!(c.rolls||[]).includes(sum))continue;const n=aiOpen(opp,c.id);if(n&&c.type==='red')value-=aiPayout(c,opp,p)*n;if(n&&c.type==='blue')value-=aiPayout(c,opp,p)*n*0.14}}
+  return value;
+}
+function aiDiceModeValue(p,diceCount){let v=0;const min=diceCount===1?1:2,max=diceCount===1?6:12;for(let n=min;n<=max;n++)v+=aiRollProb(n,diceCount)*aiRollOutcomeValue(n,p);return v}
+function aiCompactState(g=game){if(!g)return null;return{turnNo:g.turnNo,phase:g.phase,currentPlayerId:g.currentPlayerId,pending:g.pending?{kind:g.pending.kind,playerId:g.pending.playerId}:null,lastRoll:g.lastRoll?{dice:[...(g.lastRoll.dice||[])],rawSum:g.lastRoll.rawSum,finalSum:g.lastRoll.finalSum}:null,market:{...g.market},activeLandmarkIds:[...(g.activeLandmarkIds||[])],bans:g.bans?{all:[...(g.bans.all||[])]}:null,players:(g.players||[]).map(p=>({id:p.id,name:p.name,isCpu:p.isCpu,coins:p.coins,city:{...p.city},closed:{...p.closed},landmarks:{...p.landmarks},investments:{...p.investments}}))}}
+function aiAvailableHumanActions(g,playerId){
+  if(!g)return[];const p=g.players?.find(x=>x.id===playerId);if(!p)return[];
+  if(g.phase==='ban_pick'&&g.banPick?.currentPlayerId===playerId)return[...(g.banPick.choices||[]).map(x=>`BAN:${x.id}`),'BAN:SKIP'];
+  if(g.pending?.playerId===playerId){if(g.pending.kind==='invest')return['INVEST:YES','INVEST:NO'];return[...(g.pending.choices||[]).map(x=>`${g.pending.kind}:${x.id}`),...(g.pending.optional?[`${g.pending.kind}:SKIP`]:[])]}
+  if(g.currentPlayerId!==playerId)return[];
+  if(g.phase==='roll')return p.landmarks?.train_station?['ROLL:1','ROLL:2']:['ROLL:1'];
+  if(g.phase==='build'){
+    const out=Object.keys(g.market||{}).filter(id=>{const c=aiCard(id);return c&&c.cost<=p.coins&&!(c.type==='purple'&&aiCount(p,id)>0)}).map(id=>`CARD:${id}`);
+    out.push(...aiActiveLandmarks().filter(l=>!p.landmarks?.[l.id]&&l.cost<=p.coins).map(l=>`LANDMARK:${l.id}`));out.push('PASS');return out;
+  }
+  if(g.phase==='invest')return['INVEST:YES','INVEST:NO'];return[];
+}
+async function analysisEnsureCurrent(){
+  if(!roomState?.isHost||!game||!roomState.gameSessionId)return null;
+  if(analysisCurrent?.gameSessionId===roomState.gameSessionId)return analysisCurrent;
+  const all=await analysisGetAll();analysisCurrent=all.find(x=>x.gameSessionId===roomState.gameSessionId)||null;
+  if(!analysisCurrent){analysisCurrent={analysisSchemaVersion:ANALYSIS_SCHEMA_VERSION,gameVersion:APP_VERSION,cpuLogicVersion:CPU_LOGIC_VERSION,gameSessionId:roomState.gameSessionId,roomId:roomState.roomId,startedAt:roomState.startedAt||new Date().toISOString(),participants:(game.players||[]).map(p=>({id:p.id,name:p.name,isCpu:p.isCpu})),initialState:aiCompactState(game),decisions:[],result:null,uploadedAt:null,updatedAt:new Date().toISOString()};await analysisPut(analysisCurrent)}
+  return analysisCurrent;
+}
+async function analysisAppend(entry){const rec=await analysisEnsureCurrent();if(!rec)return;rec.decisions.push({...entry,index:rec.decisions.length+1,at:new Date().toISOString()});if(rec.decisions.length>2500)rec.decisions.splice(0,rec.decisions.length-2500);rec.updatedAt=new Date().toISOString();await analysisPut(rec)}
+function analysisTopCandidates(candidates,limit=5){return [...(candidates||[])].sort((a,b)=>(b.score??0)-(a.score??0)).slice(0,limit).map(x=>({action:x.action,label:x.label,score:+Number(x.score||0).toFixed(3),breakdown:x.breakdown||null}))}
+function analysisServerRecord(rec){return{analysisSchemaVersion:rec.analysisSchemaVersion,gameVersion:rec.gameVersion,cpuLogicVersion:rec.cpuLogicVersion,gameSessionId:rec.gameSessionId,roomId:rec.roomId,startedAt:rec.startedAt,participants:rec.participants,initialState:rec.initialState,decisions:(rec.decisions||[]).map(d=>({index:d.index,at:d.at,actorType:d.actorType,playerId:d.playerId,playerName:d.playerName,decisionType:d.decisionType,state:d.state,available:d.available,selected:d.selected,reason:d.reason,candidates:analysisTopCandidates(d.candidates,5)})),result:rec.result}}
+async function analysisFinalizeAndUpload(){
+  if(analysisFinalizing||!roomState?.isHost||!game?.winnerId)return;analysisFinalizing=true;
+  try{const rec=await analysisEnsureCurrent();if(!rec||rec.result)return;rec.result={winnerId:game.winnerId,winnerName:game.players.find(p=>p.id===game.winnerId)?.name||null,turnNo:game.turnNo,finishedAt:new Date().toISOString(),finalState:aiCompactState(game)};rec.updatedAt=new Date().toISOString();await analysisPut(rec);const response=await fetch(`${WORKER_ORIGIN}/analysis/upload`,{method:'POST',headers:{'content-type':'application/json','x-room-id':roomState.roomId,'x-player-token':getToken(roomState.roomId),'x-game-session-id':rec.gameSessionId},body:JSON.stringify(analysisServerRecord(rec))});if(response.ok){rec.uploadedAt=new Date().toISOString();await analysisPut(rec)}}catch(err){console.warn('analysis upload',err)}finally{analysisFinalizing=false}}
+async function analysisOnSnapshot(previousGame,nextGame){
+  if(!roomState?.isHost)return;
+  await analysisEnsureCurrent();
+  const evt=roomState.analysisEvent;
+  if(evt&&evt.seq>lastAnalysisEventSeq){lastAnalysisEventSeq=evt.seq;if(evt.actorType==='human'){const before=previousGame||nextGame;await analysisAppend({actorType:'human',playerId:evt.playerId,playerName:evt.playerName,decisionType:evt.action,state:aiCompactState(before),available:aiAvailableHumanActions(before,evt.playerId),selected:{action:evt.action,payload:evt.payload},reason:null,candidates:[]})}}
+  if(nextGame?.winnerId)analysisFinalizeAndUpload();
+}
+function aiBuildDecision(p){
+  const candidates=[];
+  for(const id of Object.keys(game.market||{})){const c=aiCard(id);if(!c||c.cost>p.coins||(c.type==='purple'&&aiCount(p,id)>0))continue;const d=aiCardScoreDetailed(id,p);candidates.push({action:'build_card',payload:{cardId:id},label:c.name,score:d.score,breakdown:d.breakdown})}
+  for(const lm of aiActiveLandmarks()){if(p.landmarks?.[lm.id]||lm.cost>p.coins)continue;const d=aiLandmarkValueDetailed(lm,p);candidates.push({action:'build_landmark',payload:{landmarkId:lm.id},label:lm.name,score:d.score,breakdown:d.breakdown})}
+  let passScore=p.landmarks?.airport?16:0;const affordableNext=aiActiveLandmarks().filter(l=>!p.landmarks?.[l.id]).map(l=>({lm:l,...aiLandmarkValueDetailed(l,p)})).sort((a,b)=>b.score-a.score)[0];if(affordableNext&&p.coins<affordableNext.lm.cost){const gap=affordableNext.lm.cost-p.coins;if(gap<=4)passScore+=Math.max(0,10-gap*2)}
+  candidates.push({action:'pass',payload:{},label:'何も建設せず終了',score:passScore,breakdown:{airport:p.landmarks?.airport?16:0,saving:+Math.max(0,passScore-(p.landmarks?.airport?16:0)).toFixed(2)}});
+  candidates.sort((a,b)=>b.score-a.score);return{decisionType:'build',candidates,selected:candidates[0],reason:`${candidates[0]?.label||'パス'}の総合評価が最大`}
+}
+function aiBanDecision(p){
+  const choices=game.banPick?.choices||[];const candidates=choices.map(x=>{let self=0,opp=0;if(aiCard(x.id)){self=aiCardScoreDetailed(x.id,p).score;const others=game.players.filter(y=>y.id!==p.id);opp=others.reduce((n,y)=>n+aiCardScoreDetailed(x.id,y).score,0)/Math.max(1,others.length)}else{const lm=aiLandmark(x.id);self=lm?aiLandmarkValueDetailed(lm,p).score:0;const others=game.players.filter(y=>y.id!==p.id);opp=others.reduce((n,y)=>n+(lm?aiLandmarkValueDetailed(lm,y).score:0),0)/Math.max(1,others.length)}const score=opp-self*0.82;return{action:'ban_pick',payload:{itemId:x.id},label:`BAN ${x.name}`,score,breakdown:{opponentValue:+opp.toFixed(2),selfCost:+(-self*0.82).toFixed(2)}}});candidates.push({action:'ban_pick',payload:{skip:true},label:'BANしない',score:1.2,breakdown:{preservePool:1.2}});candidates.sort((a,b)=>b.score-a.score);return{decisionType:'ban',candidates,selected:candidates[0],reason:`相手への妨害価値－自分への損失が最大`}}
+function aiPendingDecision(p,q){
+  const make=(type,cands,reason)=>{cands.sort((a,b)=>b.score-a.score);return{decisionType:type,candidates:cands,selected:cands[0],reason}};
+  if(q.kind==='invest'){const invested=Number(p.investments?.tech_startup||0),future=(game.players.length-1)*(invested+1)*aiRollProb(10,aiPreferredDiceCount(p))*4,liquidity=p.coins<=3?4:0;return make('invest',[{action:'invest',payload:{yes:true},label:'1コイン投資',score:future-liquidity,breakdown:{future:+future.toFixed(2),liquidity:-liquidity}},{action:'invest',payload:{yes:false},label:'投資しない',score:0}],'ITベンチャーの将来回収と手元資金を比較')}
+  if(q.kind==='reroll'){const current=aiRollOutcomeValue(game.lastRoll?.rawSum,p),dice=game.lastRoll?.diceCount||game.lastRoll?.dice?.length||1,avg=aiDiceModeValue(p,dice);return make('reroll',[{action:'reroll',payload:{yes:true},label:'振り直す',score:avg,breakdown:{expected:+avg.toFixed(3)}},{action:'reroll',payload:{yes:false},label:'そのまま',score:current,breakdown:{current:+current.toFixed(3)}}],'現在値と振り直し期待値を比較')}
+  if(q.kind==='harbor'){const base=aiRollOutcomeValue(game.lastRoll?.rawSum,p),plus=aiRollOutcomeValue((game.lastRoll?.rawSum||0)+2,p);return make('harbor',[{action:'harbor',payload:{yes:true},label:'+2する',score:plus},{action:'harbor',payload:{yes:false},label:'そのまま',score:base}],'+2前後の効果価値を比較')}
+  if(q.kind==='tv'){return make('tv',(q.choices||[]).map(x=>{const t=aiPlayer(x.id);return{action:'choice',payload:{value:x.id},label:`${t?.name||x.label}から5`,score:Math.min(5,t?.coins||0),breakdown:{collectable:Math.min(5,t?.coins||0),leaderPressure:aiCompletedLandmarks(t)*1.2}}}),'回収額と首位圧力を比較')}
+  if(q.kind==='business_target'){return make('business_target',[...(q.choices||[]).map(x=>{const t=aiPlayer(x.id);const best=(meta.cards||[]).filter(c=>aiCount(t,c.id)>0&&c.type!=='purple').map(c=>aiCardScoreDetailed(c.id,p).score).sort((a,b)=>b-a)[0]||0;return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:best+(aiCompletedLandmarks(t)*0.5)}}),...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])],'奪える施設価値が最大の相手')}
+  if(q.kind==='business_take')return make('business_take',[...(q.choices||[]).map(x=>{const d=aiCardScoreDetailed(x.id,p);return{action:'choice',payload:{value:x.id},label:x.label,score:d.score,breakdown:d.breakdown}}),...(q.optional?[{action:'choice',payload:{skip:true},label:'交換しない',score:0}]:[])],'自分に最も価値が高い施設を受け取る')
+  if(q.kind==='business_give'||q.kind==='moving_card'){const cands=(q.choices||[]).map(x=>{const d=aiCardScoreDetailed(x.id,p);return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{giveAwayValue:-d.score}}});if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'交換しない',score:0});return make(q.kind,cands,'自分に最も価値が低い施設を手放す')}
+  if(q.kind==='renovation'){return make('renovation',(q.choices||[]).map(x=>{const own=aiOpen(p,x.id),opp=game.players.filter(y=>y.id!==p.id).reduce((n,y)=>n+aiOpen(y,x.id),0);return{action:'choice',payload:{value:x.id},label:x.label,score:opp*2-own*2.4,breakdown:{opponents:opp*2,self:-own*2.4}}}),'相手の営業施設を多く止め、自分の損失を抑える')}
+  if(q.kind==='demolition'){return make('demolition',(q.choices||[]).map(x=>{const lm=aiLandmark(x.id),d=lm?aiLandmarkValueDetailed(lm,p):{score:0};return{action:'choice',payload:{value:x.id},label:x.label,score:-d.score,breakdown:{lostLandmarkValue:-d.score}}}),'戻した時の戦略損失が最小のランドマーク')}
+  if(q.kind==='moving_target'){const cardId=q.data?.cardId;return make('moving_target',(q.choices||[]).map(x=>{const t=aiPlayer(x.id),gain=cardId?aiCardScoreDetailed(cardId,t).score:0;return{action:'choice',payload:{value:x.id},label:t?.name||x.label,score:-gain-aiCompletedLandmarks(t)*0.8,breakdown:{opponentGain:-gain,leaderPenalty:-aiCompletedLandmarks(t)*0.8}}}),'渡した施設を活かしにくい相手を選択')}
+  const cands=(q.choices||[]).map(x=>({action:'choice',payload:{value:x.id},label:x.label||x.id,score:1}));if(q.optional)cands.push({action:'choice',payload:{skip:true},label:'選ばない',score:0});return make(q.kind||'choice',cands,'選択可能候補から決定')
+}
+function aiDecision(){
+  const p=aiPlayer(game?.currentPlayerId);if(!p?.isCpu)return null;
+  if(game.phase==='ban_pick')return aiBanDecision(p);
+  if(game.pending)return aiPendingDecision(p,game.pending);
+  if(game.phase==='roll'){const one=aiDiceModeValue(p,1),two=p.landmarks?.train_station?aiDiceModeValue(p,2):-999;const c=[{action:'roll',payload:{diceCount:1},label:'1個振る',score:one,breakdown:{expected:+one.toFixed(3)}}];if(p.landmarks?.train_station)c.push({action:'roll',payload:{diceCount:2},label:'2個振る',score:two,breakdown:{expected:+two.toFixed(3)}});c.sort((a,b)=>b.score-a.score);return{decisionType:'dice_count',candidates:c,selected:c[0],reason:'現在の街に対する期待値が高いダイス数'}}
+  if(game.phase==='build')return aiBuildDecision(p);
+  if(game.phase==='invest'){const invested=Number(p.investments?.tech_startup||0),future=(game.players.length-1)*(invested+1)*aiRollProb(10,aiPreferredDiceCount(p))*4;const liquidity=p.coins<=3?4:0;const yes=future-liquidity;const c=[{action:'invest',payload:{yes:true},label:'1コイン投資',score:yes,breakdown:{future:+future.toFixed(2),liquidity:-liquidity}},{action:'invest',payload:{yes:false},label:'投資しない',score:0}].sort((a,b)=>b.score-a.score);return{decisionType:'invest',candidates:c,selected:c[0],reason:'ITベンチャーの将来回収と手元資金を比較'}}
+  return null;
+}
+function cpuStateSignature(){if(!game||!roomState)return'';return[roomState.gameSessionId,roomState.revision,game.turnNo,game.phase,game.currentPlayerId,game.pending?.kind||'',game.lastRoll?.rawSum??'',Object.keys(game.market||{}).join(',')].join('|')}
+function scheduleHostCpuFromState(){
+  if(hostCpuTimer){clearTimeout(hostCpuTimer);hostCpuTimer=null}if(!roomState?.isHost||!game||game.winnerId)return;const p=aiPlayer(game.currentPlayerId);if(!p?.isCpu)return;const sig=cpuStateSignature();if(sig===lastCpuStateSignature)return;const isNewTurn=game.phase==='roll'&&!game.pending;const delay=isNewTurn?CPU_TURN_DELAY_MS:CPU_STEP_DELAY_MS;hostCpuTimer=setTimeout(async()=>{hostCpuTimer=null;if(!roomState?.isHost||!game||game.winnerId||effectAnimationsBusy()){lastCpuStateSignature='';return scheduleHostCpuFromState()}const nowSig=cpuStateSignature();if(nowSig!==sig)return scheduleHostCpuFromState();const d=aiDecision();if(!d?.selected)return;lastCpuStateSignature=sig;const p2=aiPlayer(game.currentPlayerId);await analysisAppend({actorType:'cpu',playerId:p2.id,playerName:p2.name,decisionType:d.decisionType,state:aiCompactState(game),available:d.candidates.map(x=>x.label),selected:{action:d.selected.action,payload:d.selected.payload,label:d.selected.label,score:d.selected.score},reason:d.reason,candidates:d.candidates});sendWs({type:'cpu_action',payload:{cpuId:p2.id,action:d.selected.action,payload:d.selected.payload}})},delay)}
+async function showAnalysisManager(){
+  const div=document.createElement('div');div.className='modal-backdrop';div.innerHTML='<div class="modal"><div class="row"><h2 class="grow">CPU解析ログ</h2><button class="btn" data-close>閉じる</button></div><div id="analysisManagerBody">読み込み中…</div></div>';document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
+  const body=div.querySelector('#analysisManagerBody');try{const [local,res]=await Promise.all([analysisGetAll(),fetch(`${WORKER_ORIGIN}/analysis/summary`,{cache:'no-store'})]);const server=res.ok?await res.json():{games:0,cpuDecisions:0,humanDecisions:0,totalBytes:0};const localCpu=local.reduce((n,g)=>n+(g.decisions||[]).filter(d=>d.actorType==='cpu').length,0),localHuman=local.reduce((n,g)=>n+(g.decisions||[]).filter(d=>d.actorType==='human').length,0);body.innerHTML=`<div class="analysis-summary-grid"><div><small>サーバー対戦</small><b>${server.games||0}</b></div><div><small>CPU判断</small><b>${server.cpuDecisions||0}</b></div><div><small>人間判断</small><b>${server.humanDecisions||0}</b></div><div><small>保存量</small><b>${Math.round((server.totalBytes||0)/1024)}KB</b></div></div><div class="analysis-note">CPU思考と詳細候補はホストPCで作成しIndexedDBへ保存します。ゲーム終了時だけ上位5候補＋主要状態をWorkerへ1回送信します。サーバー側では解析計算を行いません。<br>ローカル：${local.length}試合 / CPU ${localCpu}判断 / 人間 ${localHuman}判断</div><div class="analysis-actions"><button class="btn primary" data-export-server>サーバーJSON出力</button><button class="btn outline" data-export-local>ローカル詳細JSON出力</button><button class="btn danger" data-clear-server>サーバーログ削除</button><button class="btn outline" data-clear-local>ローカルログ削除</button></div><div class="analysis-status">CPUロジック：${CPU_LOGIC_VERSION} / 解析形式：${ANALYSIS_SCHEMA_VERSION}</div>`;body.querySelector('[data-export-server]').onclick=async()=>{const hostName=String(document.getElementById('roomPlayerName')?.value||commonSavedName()||'').trim();const r=await fetch(`${WORKER_ORIGIN}/analysis/export?name=${encodeURIComponent(hostName)}`,{cache:'no-store'});if(!r.ok){const e=await r.json().catch(()=>({}));return showToast(e.error||'サーバー解析ログを取得できません。')}const blob=await r.blob();const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=`machikoro_analysis_server_${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};body.querySelector('[data-export-local]').onclick=()=>downloadJson(`machikoro_analysis_local_${Date.now()}.json`,{exportedAt:new Date().toISOString(),games:local});body.querySelector('[data-clear-server]').onclick=async()=>{if(!confirm('サーバーに保存したCPU解析ログを全て削除しますか？'))return;const hostName=String(document.getElementById('roomPlayerName')?.value||commonSavedName()||'').trim();const r=await fetch(`${WORKER_ORIGIN}/analysis/clear?name=${encodeURIComponent(hostName)}`,{method:'DELETE'});if(r.ok){showToast('サーバー解析ログを削除しました。');close()}else{const e=await r.json().catch(()=>({}));showToast(e.error||'サーバー解析ログを削除できません。')}};body.querySelector('[data-clear-local]').onclick=async()=>{if(!confirm('この端末の詳細解析ログを全て削除しますか？'))return;await analysisDeleteAllLocal();analysisCurrent=null;showToast('ローカル解析ログを削除しました。');close()}}
+  catch(err){body.textContent=`解析ログを読み込めませんでした：${err.message}`}
 }
 
 function showCity(playerId){

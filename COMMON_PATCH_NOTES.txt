@@ -1,0 +1,40 @@
+ゲーム名：街コロ
+GitHub版：v1.3.20
+Worker版：v1.2.6
+CPUロジック：MACHIKORO_CPU_V2
+解析形式：1
+
+[CLIENT]
+index.html
+- CPU思考をホストブラウザ側へ移動
+- CPU v2評価ロジック追加
+- IndexedDB解析ログ追加
+- CPU判断：候補、総合点、点数内訳、選択理由を記録
+- 人間判断：Workerが正式受理した行動を記録
+- ゲーム終了時のみ解析ログをWorkerへ1回送信
+- タイトルへ「CPU解析ログ」追加
+- サーバーJSON / ローカル詳細JSON出力
+
+[WORKER]
+src/index.js
+- CPU自動思考アラームを停止。WorkerではAI探索しない
+- ホストからの cpu_action のみ受理し、現在CPU手番かサーバー側で検証
+- accepted action eventをホストへ同期し、人間行動ログの根拠に使用
+- /analysis/upload 追加
+- /analysis/summary 追加
+- /analysis/export 追加
+- /analysis/clear 追加
+- MachiKoroAnalysisStore Durable Object追加
+- gameSessionIdで解析ログ重複排除
+- 解析ログアップロードは現在ROOMのホストtoken + gameSessionIdで検証
+- export / clear は共通ホスト権限で保護
+- 空ROOM参加時の共通ホスト確認
+- ゲーム開始時の共通プレイ記録
+
+[UNCHANGED]
+- 既存Worker URL: https://machikoro-ws.naitoryo7110.workers.dev
+- 施設ルール
+- ランドマークルール
+- 市場構成
+- BANルール
+- 通常のゲーム状態同期
