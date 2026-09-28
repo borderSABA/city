@@ -1775,7 +1775,7 @@ const app=document.getElementById('app');
 const toastBox=document.getElementById('toast');
 let meta=null,imageMap={},game=null,roomState=null,rooms=[],ws=null,busy=false;
 let currentRoomId=null,currentName='',intentionalClose=false,reconnectTimer=null,roomTimer=null,pingTimer=null,hostCpuTimer=null;
-let lastCpuStateSignature='',lastAnalysisEventSeq=0,analysisCurrent=null,analysisFinalizing=false;
+let lastCpuStateSignature='',lastAnalysisEventSeq=0,analysisCurrent=null,analysisFinalizing=false,analysisEventCounter=0;
 
 let logFollowLatest=true,logScrollTop=0,logScrollHeight=0;
 let visualInitialized=false,lastVisualLogSeq=0;
@@ -1982,9 +1982,10 @@ const ACTIVE_NAME_KEY='machikoro-online-active-name';
 const NAME_DRAFT_KEY='machikoro-online-name-draft';
 const ANALYSIS_HOST_ROOM_KEY='machikoro-analysis-host-room';
 const ROOM_IDS=['room1','room2','room3','room4'];
-const APP_VERSION='v1.3.24';
+const APP_VERSION='v1.3.25';
 const CPU_LOGIC_VERSION='MACHIKORO_CPU_V3';
-const ANALYSIS_SCHEMA_VERSION=1;
+const ANALYSIS_SCHEMA_VERSION=2;
+const ANALYSIS_SERVER_COMPACT_VERSION=1;
 imageMap={"wheat_field":"assets/cards/0001.jpeg","ranch":"assets/cards/0002.jpeg","forest":"assets/cards/0003.jpeg","mine":"assets/cards/0004.jpeg","apple_orchard":"assets/cards/0005.jpeg","bakery":"assets/cards/0006.jpeg","convenience_store":"assets/cards/0007.jpeg","cheese_factory":"assets/cards/0008.jpeg","furniture_factory":"assets/cards/0009.jpeg","produce_market":"assets/cards/0010.jpeg","cafe":"assets/cards/0011.jpeg","family_restaurant":"assets/cards/0012.jpeg","business_center":"assets/cards/0013.jpeg","stadium":"assets/cards/0014.jpeg","tv_station":"assets/cards/0015.jpeg","sushi_bar":"assets/cards/0016.jpeg","flower_garden":"assets/cards/0017.jpeg","flower_shop":"assets/cards/0018.jpeg","burger_shop":"assets/cards/0019.jpeg","pizza_shop":"assets/cards/0020.jpeg","mackerel_boat":"assets/cards/0021.jpeg","tuna_boat":"assets/cards/0022.jpeg","food_warehouse":"assets/cards/0023.jpeg","publisher":"assets/cards/0024.jpeg","tax_office":"assets/cards/0025.jpeg","general_store":"assets/cards/0026.jpeg","corn_field":"assets/cards/0027.jpeg","demolition_company":"assets/cards/0028.jpeg","french_restaurant":"assets/cards/0029.jpeg","loan_office":"assets/cards/0030.jpeg","vineyard":"assets/cards/0031.jpeg","winery":"assets/cards/0032.jpeg","moving_company":"assets/cards/0033.jpeg","drink_factory":"assets/cards/0034.jpeg","members_bar":"assets/cards/0035.jpeg","cleaning_company":"assets/cards/0036.jpeg","tech_startup":"assets/cards/0037.jpeg","park":"assets/cards/0038.jpeg","train_station":"assets/cards/0100.jpeg","shopping_mall":"assets/cards/0200.jpeg","amusement_park":"assets/cards/0300.jpeg","radio_tower":"assets/cards/0400.jpeg","harbor":"assets/cards/0500.jpeg","airport":"assets/cards/0600.jpeg"};
 
 function workerConfigured(){return !WORKER_ORIGIN.includes('YOUR-SUBDOMAIN')}
@@ -2092,6 +2093,7 @@ async function connectRoom(roomId,name,isReconnect=false){
   ws.onmessage=event=>{
     let data;try{data=JSON.parse(event.data)}catch{return}
     if(data.type==='error'){showToast(data.error||'操作エラーです。');return}
+    const previousRoom=roomState?structuredClone(roomState):null;
     const previousGame=game?structuredClone(game):null;
     if(data.type==='left'){
       intentionalClose=true;clearNetTimers();const oldWs=ws;ws=null;currentRoomId=null;roomState=null;game=null;resetEffectAnimations();
@@ -2105,7 +2107,7 @@ async function connectRoom(roomId,name,isReconnect=false){
       game=data.game;
       if(!previousGame&&game){resetEffectAnimations();saveCommonNameOnActualStart()}
       if(game){queueNewVisuals(game);queueTurnAnnouncement(game)}
-      analysisOnSnapshot(previousGame,game);
+      analysisOnSnapshot(previousRoom,roomState,previousGame,game);
     }
     if(meta&&roomState){
       if(game){if(!effectAnimationsBusy())render();else if(!activeVisual&&visualQueue.length&&!visualTimer)render()}
@@ -2398,35 +2400,47 @@ function showResults(){
 // v1.3.20 CPU v2 + CPU/Human analysis logging (host browser)
 // ================================================================
 const ANALYSIS_DB_NAME='machikoro-cpu-analysis';
-const ANALYSIS_DB_VERSION=1;
-const ANALYSIS_STORE='games';
+const ANALYSIS_DB_VERSION=2;
+const ANALYSIS_STORE='segments';
+const ANALYSIS_LEGACY_STORE='games';
 const CPU_STEP_DELAY_MS=520;
 const CPU_TURN_DELAY_MS=3200;
 
 function analysisDb(){
   return new Promise((resolve,reject)=>{
     const req=indexedDB.open(ANALYSIS_DB_NAME,ANALYSIS_DB_VERSION);
-    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ANALYSIS_STORE))db.createObjectStore(ANALYSIS_STORE,{keyPath:'gameSessionId'})};
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(ANALYSIS_STORE))db.createObjectStore(ANALYSIS_STORE,{keyPath:'matchId'});
+    };
     req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
   });
 }
 async function analysisPut(record){
-  if(!record?.gameSessionId)return;
+  if(!record?.matchId)return;
   const db=await analysisDb();
   await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readwrite');tx.objectStore(ANALYSIS_STORE).put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
   db.close();
 }
+async function analysisReadStore(db,storeName){
+  if(!db.objectStoreNames.contains(storeName))return[];
+  return new Promise((resolve,reject)=>{const tx=db.transaction(storeName,'readonly');const req=tx.objectStore(storeName).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+}
 async function analysisGetAll(){
   const db=await analysisDb();
-  const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readonly');const req=tx.objectStore(ANALYSIS_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
-  db.close();return rows;
+  const current=await analysisReadStore(db,ANALYSIS_STORE);
+  const legacy=await analysisReadStore(db,ANALYSIS_LEGACY_STORE);
+  db.close();
+  return [...current,...legacy.map(x=>({...x,_legacy:true}))];
 }
 async function analysisDeleteAllLocal(){
   const db=await analysisDb();
-  await new Promise((resolve,reject)=>{const tx=db.transaction(ANALYSIS_STORE,'readwrite');tx.objectStore(ANALYSIS_STORE).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  const stores=[ANALYSIS_STORE,ANALYSIS_LEGACY_STORE].filter(name=>db.objectStoreNames.contains(name));
+  for(const name of stores)await new Promise((resolve,reject)=>{const tx=db.transaction(name,'readwrite');tx.objectStore(name).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
   db.close();
 }
 function downloadJson(filename,data){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function analysisNewMatchId(){return `machikoro-segment-${crypto.randomUUID()}`}
 function aiCount(p,id){return Number(p?.city?.[id]||0)}
 function aiClosed(p,id){return Number(p?.closed?.[id]||0)}
 function aiOpen(p,id){return Math.max(0,aiCount(p,id)-aiClosed(p,id))}
@@ -2598,25 +2612,100 @@ function aiAvailableHumanActions(g,playerId){
   }
   if(g.phase==='invest')return['INVEST:YES','INVEST:NO'];return[];
 }
-async function analysisEnsureCurrent(){
+function analysisParticipants(){return (game?.players||[]).map(p=>({id:p.id,name:p.name,human:!p.isCpu,isCpu:Boolean(p.isCpu)}))}
+function analysisRules(){return{initialBans:[...(game?.bans?.initial||roomState?.settings?.initialBans||[])],playerBanEnabled:Boolean(roomState?.settings?.playerBanEnabled),activeLandmarkIds:[...(game?.activeLandmarkIds||[])]}}
+function analysisCpuConfig(){return{logicVersion:CPU_LOGIC_VERSION,mode:'host_device',candidateServerLimit:5}}
+function analysisSegmentMeta(){return{startedAt:new Date().toISOString(),startTurnSerial:game?.turnNo||0,startTurnNo:game?.turnNo||0,startPhase:game?.phase||null,role:'room_host',hostPlayerId:roomState?.viewerId||null}}
+async function analysisEnsureCurrent({forceNew=false}={}){
   if(!roomState?.isHost||!game||!roomState.gameSessionId)return null;
-  if(analysisCurrent?.gameSessionId===roomState.gameSessionId)return analysisCurrent;
-  const all=await analysisGetAll();analysisCurrent=all.find(x=>x.gameSessionId===roomState.gameSessionId)||null;
-  if(!analysisCurrent){analysisCurrent={analysisSchemaVersion:ANALYSIS_SCHEMA_VERSION,gameVersion:APP_VERSION,cpuLogicVersion:CPU_LOGIC_VERSION,gameSessionId:roomState.gameSessionId,roomId:roomState.roomId,startedAt:roomState.startedAt||new Date().toISOString(),participants:(game.players||[]).map(p=>({id:p.id,name:p.name,isCpu:p.isCpu})),initialState:aiCompactState(game),decisions:[],result:null,uploadedAt:null,updatedAt:new Date().toISOString()};await analysisPut(analysisCurrent)}
+  if(!forceNew&&analysisCurrent?.gameSessionId===roomState.gameSessionId&&!analysisCurrent?.result&&analysisCurrent?.meta?.analysisSegment?.hostPlayerId===roomState.viewerId)return analysisCurrent;
+  const all=(await analysisGetAll()).filter(x=>!x._legacy);
+  if(!forceNew){
+    const reusable=all.filter(x=>x.gameSessionId===roomState.gameSessionId&&!x.result&&x.meta?.analysisSegment?.hostPlayerId===roomState.viewerId).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')))[0];
+    if(reusable){analysisCurrent=reusable;lastAnalysisEventSeq=Math.max(lastAnalysisEventSeq,Number(reusable.lastAnalysisEventSeq||0));return analysisCurrent}
+  }
+  analysisCurrent={
+    schemaVersion:ANALYSIS_SCHEMA_VERSION,
+    analysisSchemaVersion:ANALYSIS_SCHEMA_VERSION,
+    appVersion:APP_VERSION,
+    gameVersion:APP_VERSION,
+    cpuLogicVersion:CPU_LOGIC_VERSION,
+    serverCompactVersion:ANALYSIS_SERVER_COMPACT_VERSION,
+    matchId:analysisNewMatchId(),
+    gameSessionId:roomState.gameSessionId,
+    meta:{roomId:roomState.roomId,gameSessionId:roomState.gameSessionId,playerCount:(game.players||[]).length,rules:analysisRules(),participants:analysisParticipants(),initialState:aiCompactState(game),cpuConfig:analysisCpuConfig(),analysisSegment:analysisSegmentMeta()},
+    cpuDecisions:[],actions:[],events:[],result:null,uploadedAt:null,updatedAt:new Date().toISOString(),lastAnalysisEventSeq:Number(roomState.analysisEventSeq||0)
+  };
+  lastAnalysisEventSeq=analysisCurrent.lastAnalysisEventSeq;
+  await analysisPut(analysisCurrent);
   return analysisCurrent;
 }
-async function analysisAppend(entry){const rec=await analysisEnsureCurrent();if(!rec)return;rec.decisions.push({...entry,index:rec.decisions.length+1,at:new Date().toISOString()});if(rec.decisions.length>2500)rec.decisions.splice(0,rec.decisions.length-2500);rec.updatedAt=new Date().toISOString();await analysisPut(rec)}
-function analysisTopCandidates(candidates,limit=5){return [...(candidates||[])].sort((a,b)=>(b.score??0)-(a.score??0)).slice(0,limit).map(x=>({action:x.action,label:x.label,score:+Number(x.score||0).toFixed(3),breakdown:x.breakdown||null}))}
-function analysisServerRecord(rec){return{analysisSchemaVersion:rec.analysisSchemaVersion,gameVersion:rec.gameVersion,cpuLogicVersion:rec.cpuLogicVersion,gameSessionId:rec.gameSessionId,roomId:rec.roomId,startedAt:rec.startedAt,participants:rec.participants,initialState:rec.initialState,decisions:(rec.decisions||[]).map(d=>({index:d.index,at:d.at,actorType:d.actorType,playerId:d.playerId,playerName:d.playerName,decisionType:d.decisionType,state:d.state,available:d.available,selected:d.selected,reason:d.reason,candidates:analysisTopCandidates(d.candidates,5)})),result:rec.result}}
-async function analysisFinalizeAndUpload(){
-  if(analysisFinalizing||!roomState?.isHost||!game?.winnerId)return;analysisFinalizing=true;
-  try{const rec=await analysisEnsureCurrent();if(!rec||rec.result)return;rec.result={winnerId:game.winnerId,winnerName:game.players.find(p=>p.id===game.winnerId)?.name||null,turnNo:game.turnNo,finishedAt:new Date().toISOString(),finalState:aiCompactState(game)};rec.updatedAt=new Date().toISOString();await analysisPut(rec);const response=await fetch(`${WORKER_ORIGIN}/analysis/upload`,{method:'POST',headers:{'content-type':'application/json','x-room-id':roomState.roomId,'x-player-token':getToken(roomState.roomId),'x-game-session-id':rec.gameSessionId},body:JSON.stringify(analysisServerRecord(rec))});if(response.ok){rec.uploadedAt=new Date().toISOString();await analysisPut(rec)}}catch(err){console.warn('analysis upload',err)}finally{analysisFinalizing=false}}
-async function analysisOnSnapshot(previousGame,nextGame){
-  if(!roomState?.isHost)return;
-  await analysisEnsureCurrent();
-  const evt=roomState.analysisEvent;
-  if(evt&&evt.seq>lastAnalysisEventSeq){lastAnalysisEventSeq=evt.seq;if(evt.actorType==='human'){const before=previousGame||nextGame;await analysisAppend({actorType:'human',playerId:evt.playerId,playerName:evt.playerName,decisionType:evt.action,state:aiCompactState(before),available:aiAvailableHumanActions(before,evt.playerId),selected:{action:evt.action,payload:evt.payload},reason:null,candidates:[]})}}
-  if(nextGame?.winnerId)analysisFinalizeAndUpload();
+async function analysisPersistCurrent(){if(!analysisCurrent?.matchId)return;analysisCurrent.updatedAt=new Date().toISOString();analysisCurrent.lastAnalysisEventSeq=lastAnalysisEventSeq;await analysisPut(analysisCurrent)}
+async function analysisAppendCpuDecision(entry){const rec=await analysisEnsureCurrent();if(!rec)return;rec.cpuDecisions.push({...entry,index:rec.cpuDecisions.length+1,at:new Date().toISOString()});if(rec.cpuDecisions.length>2500)rec.cpuDecisions.splice(0,rec.cpuDecisions.length-2500);analysisEventCounter++;await analysisPersistCurrent()}
+async function analysisAppendAction(entry){const rec=await analysisEnsureCurrent();if(!rec)return;rec.actions.push({...entry,index:rec.actions.length+1,at:new Date().toISOString()});if(rec.actions.length>4000)rec.actions.splice(0,rec.actions.length-4000);analysisEventCounter++;await analysisPersistCurrent()}
+async function analysisAppendEvent(entry){const rec=await analysisEnsureCurrent();if(!rec)return;rec.events.push({...entry,index:rec.events.length+1,at:new Date().toISOString()});if(rec.events.length>1000)rec.events.splice(0,rec.events.length-1000);analysisEventCounter++;await analysisPersistCurrent()}
+async function analysisAppend(entry){return analysisAppendCpuDecision(entry)}
+function analysisTopCandidates(candidates,limit=5){return [...(candidates||[])].sort((a,b)=>(b.score??0)-(a.score??0)).slice(0,limit).map((x,rank)=>({rank:rank+1,action:x.action,label:x.label,score:+Number(x.score||0).toFixed(3),breakdown:x.breakdown||null,payload:x.payload||null,executable:true}))}
+function analysisServerRecord(rec){return{
+  schemaVersion:rec.schemaVersion,analysisSchemaVersion:rec.analysisSchemaVersion,appVersion:rec.appVersion,gameVersion:rec.gameVersion,cpuLogicVersion:rec.cpuLogicVersion,serverCompactVersion:rec.serverCompactVersion,
+  matchId:rec.matchId,gameSessionId:rec.gameSessionId,meta:rec.meta,
+  cpuDecisions:(rec.cpuDecisions||[]).map(d=>({index:d.index,at:d.at,playerId:d.playerId,playerName:d.playerName,decisionType:d.decisionType,state:d.state,selected:d.selected,selectionReason:d.reason,candidates:analysisTopCandidates(d.candidates,5)})),
+  actions:(rec.actions||[]).map(a=>({index:a.index,at:a.at,actorType:a.actorType,playerId:a.playerId,playerName:a.playerName,actionType:a.actionType,action:a.action,actionData:a.actionData,available:a.available,visibleState:a.visibleState,acceptedByWorker:a.acceptedByWorker,receiptId:a.receiptId,turnSerial:a.turnSerial,turnNo:a.turnNo,phase:a.phase})),
+  events:(rec.events||[]).map(e=>({index:e.index,at:e.at,eventType:e.eventType,playerId:e.playerId,playerName:e.playerName,turnSerial:e.turnSerial,turnNo:e.turnNo,phase:e.phase,detail:e.detail||null})),
+  result:rec.result
+}}
+async function analysisUploadRecord(rec){
+  if(!rec?.matchId||rec.uploadedAt)return false;
+  try{
+    const response=await fetch(`${WORKER_ORIGIN}/analysis/upload`,{method:'POST',headers:{'content-type':'application/json','x-room-id':rec.meta?.roomId||currentRoomId||'','x-player-token':getToken(rec.meta?.roomId||currentRoomId||''),'x-game-session-id':rec.gameSessionId,'x-match-id':rec.matchId},body:JSON.stringify(analysisServerRecord(rec))});
+    if(response.ok){rec.uploadedAt=new Date().toISOString();await analysisPut(rec);return true}
+  }catch(err){console.warn('analysis upload',err)}
+  return false;
+}
+async function analysisFinalizeSegment(status,reason,{snapshot=game,winnerId=null}={}){
+  if(analysisFinalizing||!analysisCurrent?.matchId||analysisCurrent.result)return;analysisFinalizing=true;
+  try{
+    const rec=analysisCurrent;
+    const finalGame=snapshot||game;
+    const resolvedWinner=winnerId||finalGame?.winnerId||null;
+    rec.result={status,reason,endedAt:new Date().toISOString(),winnerId:resolvedWinner,winnerName:resolvedWinner?finalGame?.players?.find(p=>p.id===resolvedWinner)?.name||null:null,turnNo:finalGame?.turnNo??null,turnSerial:finalGame?.turnNo??null,finalState:aiCompactState(finalGame),diceHistory:finalGame?.stats?.dice||null};
+    await analysisPersistCurrent();
+    await analysisUploadRecord(rec);
+  }finally{analysisFinalizing=false}
+}
+async function analysisHandleAcceptedEvent(evt,previousGame,nextGame){
+  const before=previousGame||nextGame;
+  if(evt.eventType==='action_accepted'){
+    const available=evt.actorType==='human'?aiAvailableHumanActions(before,evt.playerId):[];
+    await analysisAppendAction({actorType:evt.actorType,playerId:evt.playerId,playerName:evt.playerName,actionType:evt.actorType==='human'?'human_action':'cpu_action',action:evt.action,actionData:evt.payload||{},available,visibleState:aiCompactState(before),acceptedByWorker:true,receiptId:evt.receiptId||null,turnSerial:evt.turnSerial??evt.turnNoBefore??null,turnNo:evt.turnNoBefore??null,phase:evt.phaseBefore??null});
+    return;
+  }
+  if(['participant_disconnect','participant_reconnect','analysis_host_acquired'].includes(evt.eventType)){
+    await analysisAppendEvent({eventType:evt.eventType,playerId:evt.playerId||null,playerName:evt.playerName||null,turnSerial:evt.turnSerial??null,turnNo:evt.turnNo??null,phase:evt.phase??null,detail:evt.detail||null});
+  }
+}
+async function analysisOnSnapshot(previousRoom,nextRoom,previousGame,nextGame){
+  const sameSession=previousRoom?.gameSessionId&&previousRoom.gameSessionId===nextRoom?.gameSessionId;
+  if(previousRoom?.isHost&&sameSession&&!nextRoom?.isHost&&analysisCurrent?.gameSessionId===previousRoom.gameSessionId&&!analysisCurrent.result){
+    await analysisFinalizeSegment('incomplete','host_migration',{snapshot:previousGame||nextGame});
+    analysisCurrent=null;
+  }
+  if(nextRoom?.isHost&&nextGame&&nextRoom.gameSessionId){
+    const acquired=!previousRoom?.isHost||!sameSession;
+    await analysisEnsureCurrent({forceNew:false});
+    if(acquired&&analysisCurrent){
+      const handoffEvents=[...(nextRoom.analysisEvents||[])].filter(e=>['participant_disconnect','analysis_host_acquired'].includes(e.eventType)).slice(-3);
+      for(const evt of handoffEvents)await analysisAppendEvent({eventType:evt.eventType,playerId:evt.playerId||null,playerName:evt.playerName||null,turnSerial:evt.turnSerial??nextGame.turnNo,turnNo:evt.turnNo??nextGame.turnNo,phase:evt.phase??nextGame.phase,detail:evt.detail||null});
+      if(!handoffEvents.some(e=>e.eventType==='analysis_host_acquired'))await analysisAppendEvent({eventType:'analysis_host_acquired',playerId:nextRoom.viewerId,playerName:nextGame.players?.find(p=>p.id===nextRoom.viewerId)?.name||null,turnSerial:nextGame.turnNo,turnNo:nextGame.turnNo,phase:nextGame.phase});
+    }
+    const events=[...(nextRoom.analysisEvents||[])].sort((a,b)=>(a.seq||0)-(b.seq||0));
+    for(const evt of events){if((evt.seq||0)<=lastAnalysisEventSeq)continue;lastAnalysisEventSeq=evt.seq||lastAnalysisEventSeq;await analysisHandleAcceptedEvent(evt,previousGame,nextGame)}
+    await analysisPersistCurrent();
+    if(nextGame?.winnerId)await analysisFinalizeSegment('finished','victory_sync',{snapshot:nextGame,winnerId:nextGame.winnerId});
+  }
+  if(previousRoom?.isHost&&previousRoom?.gameSessionId&&!nextRoom?.gameSessionId&&analysisCurrent?.gameSessionId===previousRoom.gameSessionId&&!analysisCurrent.result){
+    await analysisFinalizeSegment('abandoned','room_reset',{snapshot:previousGame});analysisCurrent=null;
+  }
 }
 function aiBuildDecision(p){
   const candidates=[];
@@ -2746,7 +2835,7 @@ function analysisPasswordHeaders(){
 function clearAnalysisAdminPassword(){analysisAdminPassword=''}
 async function showAnalysisManager(){
   const div=document.createElement('div');div.className='modal-backdrop';div.innerHTML='<div class="modal"><div class="row"><h2 class="grow">CPU解析ログ</h2><button class="btn" data-close>閉じる</button></div><div id="analysisManagerBody">読み込み中…</div></div>';document.body.appendChild(div);const close=()=>div.remove();div.querySelector('[data-close]').onclick=close;div.onclick=e=>{if(e.target===div)close()};
-  const body=div.querySelector('#analysisManagerBody');try{const [local,res]=await Promise.all([analysisGetAll(),fetch(`${WORKER_ORIGIN}/analysis/summary`,{cache:'no-store'})]);const server=res.ok?await res.json():{games:0,cpuDecisions:0,humanDecisions:0,totalBytes:0};const localCpu=local.reduce((n,g)=>n+(g.decisions||[]).filter(d=>d.actorType==='cpu').length,0),localHuman=local.reduce((n,g)=>n+(g.decisions||[]).filter(d=>d.actorType==='human').length,0);body.innerHTML=`<div class="analysis-summary-grid"><div><small>サーバー対戦</small><b>${server.games||0}</b></div><div><small>CPU判断</small><b>${server.cpuDecisions||0}</b></div><div><small>人間判断</small><b>${server.humanDecisions||0}</b></div><div><small>保存量</small><b>${Math.round((server.totalBytes||0)/1024)}KB</b></div></div><div class="analysis-note">CPU思考と詳細候補はホストPCで作成しIndexedDBへ保存します。ゲーム終了時だけ上位5候補＋主要状態をWorkerへ1回送信します。サーバー側では解析計算を行いません。サーバーJSON出力・削除は管理パスワードで認証します。<br>ローカル：${local.length}試合 / CPU ${localCpu}判断 / 人間 ${localHuman}判断</div><div class="analysis-actions"><button class="btn primary" data-export-server>サーバーJSON出力</button><button class="btn outline" data-export-local>ローカル詳細JSON出力</button><button class="btn danger" data-clear-server>サーバーログ削除</button><button class="btn outline" data-clear-local>ローカルログ削除</button></div><div class="analysis-status">CPUロジック：${CPU_LOGIC_VERSION} / 解析形式：${ANALYSIS_SCHEMA_VERSION}</div>`;body.querySelector('[data-export-server]').onclick=async()=>{const headers=analysisPasswordHeaders();if(!headers)return;const r=await fetch(`${WORKER_ORIGIN}/analysis/export`,{cache:'no-store',headers});if(!r.ok){const e=await r.json().catch(()=>({}));if(r.status===403)clearAnalysisAdminPassword();return showToast(e.error||'サーバー解析ログを取得できません。')}const blob=await r.blob();const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=`machikoro_analysis_server_${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};body.querySelector('[data-export-local]').onclick=()=>downloadJson(`machikoro_analysis_local_${Date.now()}.json`,{exportedAt:new Date().toISOString(),games:local});body.querySelector('[data-clear-server]').onclick=async()=>{if(!confirm('サーバーに保存したCPU解析ログを全て削除しますか？'))return;const headers=analysisPasswordHeaders();if(!headers)return;const r=await fetch(`${WORKER_ORIGIN}/analysis/clear`,{method:'DELETE',headers});if(r.ok){showToast('サーバー解析ログを削除しました。');close()}else{const e=await r.json().catch(()=>({}));if(r.status===403)clearAnalysisAdminPassword();showToast(e.error||'サーバー解析ログを削除できません。')}};body.querySelector('[data-clear-local]').onclick=async()=>{if(!confirm('この端末の詳細解析ログを全て削除しますか？'))return;await analysisDeleteAllLocal();analysisCurrent=null;showToast('ローカル解析ログを削除しました。');close()}}
+  const body=div.querySelector('#analysisManagerBody');try{const [local,res]=await Promise.all([analysisGetAll(),fetch(`${WORKER_ORIGIN}/analysis/summary`,{cache:'no-store'})]);const server=res.ok?await res.json():{games:0,cpuDecisions:0,humanDecisions:0,totalBytes:0};const localCpu=local.reduce((n,g)=>n+(g.cpuDecisions||g.decisions||[]).filter(d=>!d.actorType||d.actorType==='cpu').length,0),localHuman=local.reduce((n,g)=>n+(g.actions||g.decisions||[]).filter(d=>d.actorType==='human').length,0);body.innerHTML=`<div class="analysis-summary-grid"><div><small>解析セグメント</small><b>${server.segments??server.games??0}</b></div><div><small>CPU判断</small><b>${server.cpuDecisions||0}</b></div><div><small>人間判断</small><b>${server.humanDecisions||0}</b></div><div><small>保存量</small><b>${Math.round((server.totalBytes||0)/1024)}KB</b></div></div><div class="analysis-note">CPU思考と詳細候補はホスト端末で作成しIndexedDBへ保存します。gameSessionIdは対戦単位、matchIdはホスト解析セグメント単位です。finished / abandoned / incomplete の節目で軽量版をWorkerへ送信し、サーバー側では解析計算を行いません。サーバーJSON出力・削除は管理パスワードで認証します。<br>ローカル：${local.length}試合 / CPU ${localCpu}判断 / 人間 ${localHuman}判断</div><div class="analysis-actions"><button class="btn primary" data-export-server>サーバーJSON出力</button><button class="btn outline" data-export-local>ローカル詳細JSON出力</button><button class="btn danger" data-clear-server>サーバーログ削除</button><button class="btn outline" data-clear-local>ローカルログ削除</button></div><div class="analysis-status">CPUロジック：${CPU_LOGIC_VERSION} / 解析形式：${ANALYSIS_SCHEMA_VERSION} / compact：${ANALYSIS_SERVER_COMPACT_VERSION}</div>`;body.querySelector('[data-export-server]').onclick=async()=>{const headers=analysisPasswordHeaders();if(!headers)return;const r=await fetch(`${WORKER_ORIGIN}/analysis/export`,{cache:'no-store',headers});if(!r.ok){const e=await r.json().catch(()=>({}));if(r.status===403)clearAnalysisAdminPassword();return showToast(e.error||'サーバー解析ログを取得できません。')}const blob=await r.blob();const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=`machikoro_analysis_server_${Date.now()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};body.querySelector('[data-export-local]').onclick=()=>downloadJson(`machikoro_analysis_local_${Date.now()}.json`,{exportedAt:new Date().toISOString(),games:local});body.querySelector('[data-clear-server]').onclick=async()=>{if(!confirm('サーバーに保存したCPU解析ログを全て削除しますか？'))return;const headers=analysisPasswordHeaders();if(!headers)return;const r=await fetch(`${WORKER_ORIGIN}/analysis/clear`,{method:'DELETE',headers});if(r.ok){showToast('サーバー解析ログを削除しました。');close()}else{const e=await r.json().catch(()=>({}));if(r.status===403)clearAnalysisAdminPassword();showToast(e.error||'サーバー解析ログを削除できません。')}};body.querySelector('[data-clear-local]').onclick=async()=>{if(!confirm('この端末の詳細解析ログを全て削除しますか？'))return;await analysisDeleteAllLocal();analysisCurrent=null;showToast('ローカル解析ログを削除しました。');close()}}
   catch(err){body.textContent=`解析ログを読み込めませんでした：${err.message}`}
 }
 

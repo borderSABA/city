@@ -1,51 +1,23 @@
-街コロ CPU v3 強化
+街コロ CPU解析ログ 共通仕様対応
 
 [CLIENT]
 index.html
-- APP_VERSION: v1.3.24
-- CPU_LOGIC_VERSION: MACHIKORO_CPU_V3
-- aiCardScoreDetailed()
-  - 期待収入係数 4.2 → 5.0
-  - 建設コスト係数 0.72 → 0.65
-  - 重複ペナルティ 0.65 → 0.20
-  - 赤施設の対人圧力 0.65 → 0.80
-  - 紫施設ボーナス 2.2 → 4.0
-- aiLandmarkValueDetailed()
-  - ランドマーク勝利進行係数を強化
-- aiTechMarginalInvestmentValue()
-  - ITベンチャー投資を残り手番期待値で判断
-- aiPendingDecision()
-  - テレビ局：回収額＋勝利に近い相手
-  - ビジネスセンター：交換純利益＋妨害価値
-  - 引っ越し屋：相手の活用価値・勝利進行を考慮
-- aiCompactState()
-  - pending.data の targetId / cardId / takeId を解析ログへ追加
-- 解析ログ管理パスワード方式はv1.3.23を維持
-
-[WORKER]
-src/game.js
-- getState().pending.data に以下の安全な判断文脈を追加
-  - targetId
-  - cardId
-  - takeId
-
-src/index.js
-- APP_VERSION: 1.2.9
-- CPU_LOGIC_VERSION: MACHIKORO_CPU_V3
+- APP_VERSION: v1.3.25
+- CPU_LOGIC_VERSION: MACHIKORO_CPU_V3（変更なし）
+- ANALYSIS_SCHEMA_VERSION: 2
+- ANALYSIS_SERVER_COMPACT_VERSION: 1
+- IndexedDB v2 / segments store / keyPath=matchId
+- gameSessionId=対戦、matchId=解析セグメントに分離
+- cpuDecisions / actions / events / result を分離
+- human_action はWorker受理イベントから確定
+- CPU選択とCPU実行結果を別記録
+- finished / abandoned / incomplete 対応
+- ホスト交代時は新matchId
+- 非ホスト勝利でもホスト側でfinished確定
+- 解析IDはcrypto.randomUUID()
 
 変更していないもの
-- 既存Worker URL
+- CPU V3の評価係数・判断ロジック
 - ゲームルール
-- ダイス処理
-- 市場生成
-- 解析ログ保存API
-- 解析ログ管理パスワード方式
-- ROOM構造
-
-[VALIDATION]
-- Frontend JavaScript syntax: OK
-- Worker JavaScript syntax: OK
-- CPU v2×2 vs CPU v3×2 500戦:
-  - v3 290勝
-  - v2 210勝
-  - エラー0
+- Worker URL
+- 通常UI
